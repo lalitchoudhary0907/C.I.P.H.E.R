@@ -402,6 +402,20 @@
         </button>
 
         <button
+          id="intro-audio-toggle-btn"
+          type="button"
+          aria-pressed="true"
+          class="cipher-btn-pill cipher-btn-pill-active px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-xs cursor-pointer"
+          title="Toggle Intro Gate audio"
+        >
+          <svg class="w-3.5 h-3.5 text-arcCyan shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+          <span id="intro-audio-label">Intro Audio: ON</span>
+        </button>
+
+        <button
           id="intro-settings-btn"
           type="button"
           class="cipher-btn-pill p-2 rounded-full text-slate-300 hover:text-arcCyan cursor-pointer"
@@ -1127,6 +1141,7 @@
         VIBE: 'cipher_hud_vibe',
         VOICE_READOUT: 'cipher_hud_voice_readout',
         BGM_ENABLED: 'cipher_hud_bgm',
+        INTRO_AUDIO_ENABLED: 'cipher_hud_intro_audio',
         SESSIONS: 'cipher_hud_sessions'
       };
 
@@ -1228,7 +1243,9 @@
         voiceReadoutEnabled: false,
         speakingMessageId: null,
         bgmEnabled: true,
-        bgmPlaying: false
+        bgmPlaying: false,
+        introAudioEnabled: true,
+        introAudioPlaying: false
       };
 
       var dom = {};
@@ -1240,6 +1257,8 @@
       var bgmPlayerReady = false;
       var bgmGestureUnlocked = false;
       var pendingBgmAutoStart = false;
+      var introMusicAudio = null;
+      var introVoiceAudio = null;
 
       function isChatCapableGroqModel(modelId) {
         var id = String(modelId || '').trim();
@@ -1350,6 +1369,8 @@
         dom.introStatusDot = document.getElementById('intro-status-dot');
         dom.introStatusText = document.getElementById('intro-status-text');
         dom.introUserPill = document.getElementById('intro-user-pill');
+        dom.introAudioToggleBtn = document.getElementById('intro-audio-toggle-btn');
+        dom.introAudioLabel = document.getElementById('intro-audio-label');
         dom.introSettingsBtn = document.getElementById('intro-settings-btn');
         dom.introHelpBtn = document.getElementById('intro-help-btn');
         dom.introReactorWrap = document.getElementById('intro-reactor-wrap');
@@ -1571,6 +1592,7 @@
           var savedVibe = localStorage.getItem(STORAGE_KEYS.VIBE);
           var savedVoiceReadout = localStorage.getItem(STORAGE_KEYS.VOICE_READOUT);
           var savedBgmEnabled = localStorage.getItem(STORAGE_KEYS.BGM_ENABLED);
+          var savedIntroAudioEnabled = localStorage.getItem(STORAGE_KEYS.INTRO_AUDIO_ENABLED);
           var savedSessionsRaw = localStorage.getItem(STORAGE_KEYS.SESSIONS);
 
           state.provider = 'groq';
@@ -1603,6 +1625,7 @@
           if (savedVibe === 'GEN-Z TECH' || savedVibe === 'TACTICAL HUD') state.vibe = savedVibe;
           state.voiceReadoutEnabled = savedVoiceReadout === 'true';
           state.bgmEnabled = savedBgmEnabled === null ? true : savedBgmEnabled === 'true';
+          state.introAudioEnabled = savedIntroAudioEnabled === null ? true : savedIntroAudioEnabled === 'true';
 
           if (savedSessionsRaw) {
             var parsed = JSON.parse(savedSessionsRaw);
@@ -1644,6 +1667,7 @@
           localStorage.setItem(STORAGE_KEYS.VIBE, state.vibe);
           localStorage.setItem(STORAGE_KEYS.VOICE_READOUT, String(state.voiceReadoutEnabled));
           localStorage.setItem(STORAGE_KEYS.BGM_ENABLED, String(state.bgmEnabled));
+          localStorage.setItem(STORAGE_KEYS.INTRO_AUDIO_ENABLED, String(state.introAudioEnabled));
         } catch (err) {}
       }
 
@@ -1766,7 +1790,9 @@
       function enterWorkspace(armVoice) {
         if (state.screen === 'chat') return;
         state.screen = 'chat';
-        startBgmOnGesture();
+        bgmGestureUnlocked = true;
+        stopIntroAudio();
+        startYouTubeBgm();
         if (dom.introGate) {
           dom.introGate.classList.add('cipher-intro-hidden');
           dom.introGate.setAttribute('aria-hidden', 'true');
@@ -1788,6 +1814,10 @@
         if (state.screen === 'intro') return;
         state.screen = 'intro';
         closeSidebarDrawer();
+        stopYouTubeBgm();
+        if (state.introAudioEnabled && bgmGestureUnlocked) {
+          startIntroAudio();
+        }
         if (dom.workspaceShell) {
           dom.workspaceShell.classList.add('cipher-workspace-hidden');
           dom.workspaceShell.setAttribute('aria-hidden', 'true');
@@ -1855,6 +1885,14 @@
           dom.bgmToggleBtn.className =
             'cipher-btn-pill px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-xs cursor-pointer ' +
             (bgmActive ? 'cipher-btn-pill-active' : state.bgmEnabled ? 'text-slate-200' : 'text-slate-500');
+        }
+
+        if (dom.introAudioToggleBtn && dom.introAudioLabel) {
+          dom.introAudioToggleBtn.setAttribute('aria-pressed', String(state.introAudioEnabled));
+          dom.introAudioLabel.textContent = state.introAudioEnabled ? 'Intro Audio: ON' : 'Intro Audio: OFF';
+          dom.introAudioToggleBtn.className =
+            'cipher-btn-pill px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-xs cursor-pointer ' +
+            (state.introAudioEnabled ? 'cipher-btn-pill-active' : 'text-slate-500');
         }
 
         if (dom.hudSwitchTrack) {
@@ -3357,6 +3395,7 @@
           });
         }
         if (dom.introStatusPill) dom.introStatusPill.addEventListener('click', openConfigModal);
+        if (dom.introAudioToggleBtn) dom.introAudioToggleBtn.addEventListener('click', toggleIntroAudio);
         if (dom.introSettingsBtn) dom.introSettingsBtn.addEventListener('click', openConfigModal);
         if (dom.introUserPill) {
           dom.introUserPill.addEventListener('click', function () {
@@ -3756,8 +3795,70 @@
       }
 
       /* =====================================================================
-         YOUTUBE BACKGROUND MUSIC PLAYER (tK3JHA2fTiI)
+         STAGE-COORDINATED AUDIO: INTRO DUAL MP3 + WORKSPACE YOUTUBE (tK3JHA2fTiI)
          ===================================================================== */
+      function initIntroAudio() {
+        try {
+          if (!introMusicAudio && typeof Audio !== 'undefined') {
+            introMusicAudio = new Audio('./audio/intro-music.mp3');
+            introMusicAudio.loop = true;
+            introMusicAudio.volume = 0.28;
+            introMusicAudio.preload = 'auto';
+            introMusicAudio.addEventListener('error', function () {
+              state.introAudioPlaying = false;
+              syncHudStatus();
+            });
+          }
+          if (!introVoiceAudio && typeof Audio !== 'undefined') {
+            introVoiceAudio = new Audio('./audio/intro-voice.mp3');
+            introVoiceAudio.loop = false;
+            introVoiceAudio.volume = 0.85;
+            introVoiceAudio.preload = 'auto';
+            introVoiceAudio.addEventListener('error', function () {});
+          }
+        } catch (err) {}
+      }
+
+      function startIntroAudio() {
+        if (state.screen !== 'intro' || !state.introAudioEnabled) return;
+        initIntroAudio();
+        try {
+          if (introMusicAudio) {
+            introMusicAudio.currentTime = 0;
+            var p1 = introMusicAudio.play();
+            if (p1 && typeof p1.catch === 'function') {
+              p1.catch(function () {});
+            }
+          }
+          if (introVoiceAudio) {
+            introVoiceAudio.currentTime = 0;
+            var p2 = introVoiceAudio.play();
+            if (p2 && typeof p2.catch === 'function') {
+              p2.catch(function () {});
+            }
+          }
+          state.introAudioPlaying = true;
+          syncHudStatus();
+        } catch (err) {
+          state.introAudioPlaying = false;
+        }
+      }
+
+      function stopIntroAudio() {
+        try {
+          if (introMusicAudio) {
+            introMusicAudio.pause();
+            introMusicAudio.currentTime = 0;
+          }
+          if (introVoiceAudio) {
+            introVoiceAudio.pause();
+            introVoiceAudio.currentTime = 0;
+          }
+        } catch (err) {}
+        state.introAudioPlaying = false;
+        syncHudStatus();
+      }
+
       function createBgmPlayer() {
         try {
           if (bgmPlayer || typeof window.YT === 'undefined' || !window.YT.Player) return;
@@ -3787,7 +3888,7 @@
                   if (e && e.target && typeof e.target.setVolume === 'function') {
                     e.target.setVolume(22);
                   }
-                  if ((bgmGestureUnlocked || pendingBgmAutoStart) && state.bgmEnabled) {
+                  if (state.screen === 'chat' && (bgmGestureUnlocked || pendingBgmAutoStart) && state.bgmEnabled) {
                     pendingBgmAutoStart = false;
                     if (e && e.target && typeof e.target.playVideo === 'function') {
                       e.target.playVideo();
@@ -3798,8 +3899,22 @@
               onStateChange: function (e) {
                 try {
                   if (typeof window.YT !== 'undefined' && window.YT.PlayerState && e) {
+                    if (state.screen !== 'chat' && e.data === window.YT.PlayerState.PLAYING) {
+                      if (bgmPlayer && typeof bgmPlayer.pauseVideo === 'function') {
+                        bgmPlayer.pauseVideo();
+                      }
+                      state.bgmPlaying = false;
+                      syncHudStatus();
+                      return;
+                    }
                     state.bgmPlaying = e.data === window.YT.PlayerState.PLAYING;
-                    if (e.data === window.YT.PlayerState.ENDED && state.bgmEnabled && bgmPlayer && typeof bgmPlayer.playVideo === 'function') {
+                    if (
+                      e.data === window.YT.PlayerState.ENDED &&
+                      state.screen === 'chat' &&
+                      state.bgmEnabled &&
+                      bgmPlayer &&
+                      typeof bgmPlayer.playVideo === 'function'
+                    ) {
                       bgmPlayer.playVideo();
                     }
                     syncHudStatus();
@@ -3834,17 +3949,14 @@
             var tag = document.createElement('script');
             tag.src = 'https://www.youtube.com/iframe_api';
             tag.async = true;
-            tag.onerror = function () {
-              // Fail silently if offline or blocked
-            };
+            tag.onerror = function () {};
             document.head.appendChild(tag);
           }
         } catch (err) {}
       }
 
-      function startBgmOnGesture() {
-        bgmGestureUnlocked = true;
-        if (!state.bgmEnabled) return;
+      function startYouTubeBgm() {
+        if (state.screen !== 'chat' || !state.bgmEnabled) return;
         try {
           if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.playVideo === 'function') {
             if (typeof bgmPlayer.setVolume === 'function') bgmPlayer.setVolume(22);
@@ -3852,8 +3964,40 @@
             bgmPlayer.playVideo();
           } else {
             pendingBgmAutoStart = true;
+            loadYouTubeBgmApi();
           }
         } catch (err) {}
+      }
+
+      function stopYouTubeBgm() {
+        pendingBgmAutoStart = false;
+        try {
+          if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.pauseVideo === 'function') {
+            bgmPlayer.pauseVideo();
+          }
+        } catch (err) {}
+        state.bgmPlaying = false;
+        syncHudStatus();
+      }
+
+      function toggleIntroAudio() {
+        bgmGestureUnlocked = true;
+        state.introAudioEnabled = !state.introAudioEnabled;
+        saveConfig();
+        try {
+          if (state.introAudioEnabled) {
+            if (state.screen === 'intro') {
+              startIntroAudio();
+            }
+            triggerToast('Intro audio ON');
+          } else {
+            stopIntroAudio();
+            triggerToast('Intro audio OFF');
+          }
+        } catch (err) {
+          state.introAudioPlaying = false;
+        }
+        syncHudStatus();
       }
 
       function toggleBgm() {
@@ -3862,25 +4006,22 @@
         saveConfig();
         try {
           if (state.bgmEnabled) {
-            if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.playVideo === 'function') {
-              if (typeof bgmPlayer.setVolume === 'function') bgmPlayer.setVolume(22);
-              if (typeof bgmPlayer.unMute === 'function') bgmPlayer.unMute();
-              bgmPlayer.playVideo();
+            if (state.screen === 'intro') {
+              stopYouTubeBgm();
+              startIntroAudio();
             } else {
-              pendingBgmAutoStart = true;
-              loadYouTubeBgmApi();
+              stopIntroAudio();
+              startYouTubeBgm();
             }
             triggerToast('Background music ON');
           } else {
-            pendingBgmAutoStart = false;
-            if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.pauseVideo === 'function') {
-              bgmPlayer.pauseVideo();
-            }
-            state.bgmPlaying = false;
+            stopIntroAudio();
+            stopYouTubeBgm();
             triggerToast('Background music OFF');
           }
         } catch (err) {
           state.bgmPlaying = false;
+          state.introAudioPlaying = false;
         }
         syncHudStatus();
       }
@@ -3898,15 +4039,21 @@
         renderChatStream();
         syncQuotaCard();
         initWaveBackdrop();
+        initIntroAudio();
         loadYouTubeBgmApi();
 
-        function unlockBgmOnce() {
-          startBgmOnGesture();
-          document.removeEventListener('pointerdown', unlockBgmOnce);
-          document.removeEventListener('keydown', unlockBgmOnce);
+        function unlockAudioOnce() {
+          bgmGestureUnlocked = true;
+          if (state.screen === 'intro') {
+            if (state.introAudioEnabled) startIntroAudio();
+          } else if (state.bgmEnabled) {
+            startYouTubeBgm();
+          }
+          document.removeEventListener('pointerdown', unlockAudioOnce);
+          document.removeEventListener('keydown', unlockAudioOnce);
         }
-        document.addEventListener('pointerdown', unlockBgmOnce, { passive: true });
-        document.addEventListener('keydown', unlockBgmOnce, { passive: true });
+        document.addEventListener('pointerdown', unlockAudioOnce, { passive: true });
+        document.addEventListener('keydown', unlockAudioOnce, { passive: true });
       });
     })();
   </script>
