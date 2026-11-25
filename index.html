@@ -823,6 +823,20 @@
             <span id="speak-btn-label">Speak</span>
           </button>
 
+          <button
+            id="bgm-toggle-btn"
+            type="button"
+            class="cipher-btn-pill px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-xs text-slate-200 cursor-pointer"
+            title="Toggle ambient Marvel soundtrack"
+          >
+            <svg class="w-3.5 h-3.5 text-arcCyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+            <span id="bgm-btn-label">Music</span>
+          </button>
+
           <!-- HUD Toggle Switch -->
           <button
             id="hud-motion-btn"
@@ -1079,6 +1093,15 @@
     </div>
   </div>
 
+  <!-- Hidden/Offscreen YouTube Background Music Host -->
+  <div
+    id="cipher-bgm-host"
+    class="fixed -left-[9999px] -top-[9999px] w-px h-px opacity-0 pointer-events-none"
+    aria-hidden="true"
+  >
+    <div id="cipher-bgm-player"></div>
+  </div>
+
   <!-- Toast Banner -->
   <div
     id="cipher-toast"
@@ -1103,6 +1126,7 @@
         DEMO_MODE: 'cipher_hud_demo',
         VIBE: 'cipher_hud_vibe',
         VOICE_READOUT: 'cipher_hud_voice_readout',
+        BGM_ENABLED: 'cipher_hud_bgm',
         SESSIONS: 'cipher_hud_sessions'
       };
 
@@ -1202,7 +1226,9 @@
         editingMessageId: null,
         voiceListening: false,
         voiceReadoutEnabled: false,
-        speakingMessageId: null
+        speakingMessageId: null,
+        bgmEnabled: true,
+        bgmPlaying: false
       };
 
       var dom = {};
@@ -1210,6 +1236,10 @@
       var purgeArmTimer = null;
       var speechRecognitionInstance = null;
       var groqModelsCache = { apiKey: '', models: [] };
+      var bgmPlayer = null;
+      var bgmPlayerReady = false;
+      var bgmGestureUnlocked = false;
+      var pendingBgmAutoStart = false;
 
       function isChatCapableGroqModel(modelId) {
         var id = String(modelId || '').trim();
@@ -1358,6 +1388,8 @@
         dom.voiceBtnLabel = document.getElementById('voice-btn-label');
         dom.voiceReadoutBtn = document.getElementById('voice-readout-btn');
         dom.speakBtnLabel = document.getElementById('speak-btn-label');
+        dom.bgmToggleBtn = document.getElementById('bgm-toggle-btn');
+        dom.bgmBtnLabel = document.getElementById('bgm-btn-label');
         dom.hudMotionBtn = document.getElementById('hud-motion-btn');
         dom.hudSwitchTrack = document.getElementById('hud-switch-track');
         dom.fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -1538,6 +1570,7 @@
           var savedGroqModel = localStorage.getItem(STORAGE_KEYS.GROQ_MODEL);
           var savedVibe = localStorage.getItem(STORAGE_KEYS.VIBE);
           var savedVoiceReadout = localStorage.getItem(STORAGE_KEYS.VOICE_READOUT);
+          var savedBgmEnabled = localStorage.getItem(STORAGE_KEYS.BGM_ENABLED);
           var savedSessionsRaw = localStorage.getItem(STORAGE_KEYS.SESSIONS);
 
           state.provider = 'groq';
@@ -1569,6 +1602,7 @@
           if (!state.demoMode && !state.groqKey) state.demoMode = true;
           if (savedVibe === 'GEN-Z TECH' || savedVibe === 'TACTICAL HUD') state.vibe = savedVibe;
           state.voiceReadoutEnabled = savedVoiceReadout === 'true';
+          state.bgmEnabled = savedBgmEnabled === null ? true : savedBgmEnabled === 'true';
 
           if (savedSessionsRaw) {
             var parsed = JSON.parse(savedSessionsRaw);
@@ -1609,6 +1643,7 @@
           localStorage.setItem(STORAGE_KEYS.GROQ_MODEL, normalizeGroqModel(state.groqModel));
           localStorage.setItem(STORAGE_KEYS.VIBE, state.vibe);
           localStorage.setItem(STORAGE_KEYS.VOICE_READOUT, String(state.voiceReadoutEnabled));
+          localStorage.setItem(STORAGE_KEYS.BGM_ENABLED, String(state.bgmEnabled));
         } catch (err) {}
       }
 
@@ -1731,6 +1766,7 @@
       function enterWorkspace(armVoice) {
         if (state.screen === 'chat') return;
         state.screen = 'chat';
+        startBgmOnGesture();
         if (dom.introGate) {
           dom.introGate.classList.add('cipher-intro-hidden');
           dom.introGate.setAttribute('aria-hidden', 'true');
@@ -1811,6 +1847,14 @@
           dom.voiceReadoutBtn.className =
             'cipher-btn-pill px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-xs cursor-pointer ' +
             (state.voiceReadoutEnabled ? 'cipher-btn-pill-active' : 'text-slate-200');
+        }
+
+        if (dom.bgmToggleBtn && dom.bgmBtnLabel) {
+          var bgmActive = state.bgmEnabled && state.bgmPlaying;
+          dom.bgmBtnLabel.textContent = !state.bgmEnabled ? 'Music: Off' : bgmActive ? 'Music: On' : 'Music';
+          dom.bgmToggleBtn.className =
+            'cipher-btn-pill px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-xs cursor-pointer ' +
+            (bgmActive ? 'cipher-btn-pill-active' : state.bgmEnabled ? 'text-slate-200' : 'text-slate-500');
         }
 
         if (dom.hudSwitchTrack) {
@@ -3424,6 +3468,10 @@
           });
         }
 
+        if (dom.bgmToggleBtn) {
+          dom.bgmToggleBtn.addEventListener('click', toggleBgm);
+        }
+
         if (dom.hudMotionBtn) {
           dom.hudMotionBtn.addEventListener('click', function () {
             state.hudWaveEnabled = !state.hudWaveEnabled;
@@ -3707,6 +3755,136 @@
         tick();
       }
 
+      /* =====================================================================
+         YOUTUBE BACKGROUND MUSIC PLAYER (tK3JHA2fTiI)
+         ===================================================================== */
+      function createBgmPlayer() {
+        try {
+          if (bgmPlayer || typeof window.YT === 'undefined' || !window.YT.Player) return;
+          var targetEl = document.getElementById('cipher-bgm-player');
+          if (!targetEl) return;
+
+          bgmPlayer = new window.YT.Player('cipher-bgm-player', {
+            height: '1',
+            width: '1',
+            videoId: 'tK3JHA2fTiI',
+            playerVars: {
+              autoplay: 0,
+              controls: 0,
+              disablekb: 1,
+              fs: 0,
+              iv_load_policy: 3,
+              loop: 1,
+              modestbranding: 1,
+              playlist: 'tK3JHA2fTiI',
+              playsinline: 1,
+              rel: 0
+            },
+            events: {
+              onReady: function (e) {
+                try {
+                  bgmPlayerReady = true;
+                  if (e && e.target && typeof e.target.setVolume === 'function') {
+                    e.target.setVolume(22);
+                  }
+                  if ((bgmGestureUnlocked || pendingBgmAutoStart) && state.bgmEnabled) {
+                    pendingBgmAutoStart = false;
+                    if (e && e.target && typeof e.target.playVideo === 'function') {
+                      e.target.playVideo();
+                    }
+                  }
+                } catch (err) {}
+              },
+              onStateChange: function (e) {
+                try {
+                  if (typeof window.YT !== 'undefined' && window.YT.PlayerState && e) {
+                    state.bgmPlaying = e.data === window.YT.PlayerState.PLAYING;
+                    if (e.data === window.YT.PlayerState.ENDED && state.bgmEnabled && bgmPlayer && typeof bgmPlayer.playVideo === 'function') {
+                      bgmPlayer.playVideo();
+                    }
+                    syncHudStatus();
+                  }
+                } catch (err) {}
+              },
+              onError: function () {
+                state.bgmPlaying = false;
+                syncHudStatus();
+              }
+            }
+          });
+        } catch (err) {
+          bgmPlayerReady = false;
+        }
+      }
+
+      function loadYouTubeBgmApi() {
+        try {
+          if (typeof window.YT !== 'undefined' && window.YT.Player) {
+            createBgmPlayer();
+            return;
+          }
+          var prevReady = window.onYouTubeIframeAPIReady;
+          window.onYouTubeIframeAPIReady = function () {
+            try {
+              if (typeof prevReady === 'function') prevReady();
+            } catch (e) {}
+            createBgmPlayer();
+          };
+          if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+            var tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            tag.async = true;
+            tag.onerror = function () {
+              // Fail silently if offline or blocked
+            };
+            document.head.appendChild(tag);
+          }
+        } catch (err) {}
+      }
+
+      function startBgmOnGesture() {
+        bgmGestureUnlocked = true;
+        if (!state.bgmEnabled) return;
+        try {
+          if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.playVideo === 'function') {
+            if (typeof bgmPlayer.setVolume === 'function') bgmPlayer.setVolume(22);
+            if (typeof bgmPlayer.unMute === 'function') bgmPlayer.unMute();
+            bgmPlayer.playVideo();
+          } else {
+            pendingBgmAutoStart = true;
+          }
+        } catch (err) {}
+      }
+
+      function toggleBgm() {
+        bgmGestureUnlocked = true;
+        state.bgmEnabled = !state.bgmEnabled;
+        saveConfig();
+        try {
+          if (state.bgmEnabled) {
+            if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.playVideo === 'function') {
+              if (typeof bgmPlayer.setVolume === 'function') bgmPlayer.setVolume(22);
+              if (typeof bgmPlayer.unMute === 'function') bgmPlayer.unMute();
+              bgmPlayer.playVideo();
+            } else {
+              pendingBgmAutoStart = true;
+              loadYouTubeBgmApi();
+            }
+            triggerToast('Background music ON');
+          } else {
+            pendingBgmAutoStart = false;
+            if (bgmPlayerReady && bgmPlayer && typeof bgmPlayer.pauseVideo === 'function') {
+              bgmPlayer.pauseVideo();
+            }
+            state.bgmPlaying = false;
+            triggerToast('Background music OFF');
+          }
+        } catch (err) {
+          state.bgmPlaying = false;
+        }
+        syncHudStatus();
+      }
+
       document.addEventListener('DOMContentLoaded', function () {
         cacheElements();
         if (dom.introReactorWrap) {
@@ -3720,6 +3898,15 @@
         renderChatStream();
         syncQuotaCard();
         initWaveBackdrop();
+        loadYouTubeBgmApi();
+
+        function unlockBgmOnce() {
+          startBgmOnGesture();
+          document.removeEventListener('pointerdown', unlockBgmOnce);
+          document.removeEventListener('keydown', unlockBgmOnce);
+        }
+        document.addEventListener('pointerdown', unlockBgmOnce, { passive: true });
+        document.addEventListener('keydown', unlockBgmOnce, { passive: true });
       });
     })();
   </script>
