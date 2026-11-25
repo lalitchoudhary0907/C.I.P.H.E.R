@@ -618,7 +618,7 @@
     <!-- Bottom Minimal Telemetry Line -->
     <footer class="relative z-10 max-w-6xl w-full mx-auto flex items-center justify-center text-center">
       <p id="intro-telemetry-line" class="font-mono text-[11px] text-cipherMuted/85 tracking-wider">
-        TELEMETRY: STANDBY &middot; GEMINI-3.8-FLASH &amp; CHATGPT READY &middot; CMATRIX LAYER ACTIVE
+        TELEMETRY: STANDBY &middot; GROQ LLAMA-3.3-70B READY &middot; CMATRIX LAYER ACTIVE
       </p>
     </footer>
   </section>
@@ -765,7 +765,7 @@
             class="px-2 py-0.5 rounded border border-cipherLine hover:border-arcCyan text-arcCyan text-[10px] tracking-wider transition cursor-pointer"
             title="Open API provider settings"
           >
-            GOOGLE GEMINI
+            GROQ
           </button>
           <button
             id="vibe-toggle-btn"
@@ -836,65 +836,22 @@
       </div>
 
       <p class="text-xs text-cipherMuted leading-relaxed">
-        Select <span class="font-mono text-arcCyan">GOOGLE GEMINI</span> or <span class="font-mono text-arcCyan">OPENAI CHATGPT</span>, store either or both API keys locally, or run in Demo Sandbox mode.
+        Enter your <span class="font-mono text-arcCyan">GROQ</span> API key (stored locally in your browser), or run in Demo Sandbox mode.
       </p>
 
       <div class="space-y-1.5">
-        <label class="block font-mono text-xs text-cipherSubtext">
-          ACTIVE PROVIDER
-        </label>
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            id="provider-gemini-btn"
-            type="button"
-            class="py-2 px-3 rounded-lg bg-cipherVoid border border-arcCyan text-arcCyan font-mono text-xs font-semibold transition cursor-pointer"
-          >
-            GOOGLE GEMINI
-          </button>
-          <button
-            id="provider-openai-btn"
-            type="button"
-            class="py-2 px-3 rounded-lg bg-cipherVoid border border-cipherLine text-cipherSubtext font-mono text-xs font-semibold transition cursor-pointer"
-          >
-            OPENAI CHATGPT
-          </button>
-        </div>
-      </div>
-
-      <div class="space-y-1.5">
-        <label for="modal-gemini-key-input" class="block font-mono text-xs text-cipherSubtext">
-          GOOGLE GEMINI API KEY
+        <label for="modal-groq-key-input" class="block font-mono text-xs text-cipherSubtext">
+          GROQ API KEY
         </label>
         <div class="flex items-center gap-2">
           <input
-            id="modal-gemini-key-input"
+            id="modal-groq-key-input"
             type="password"
-            placeholder="AIzaSy... or AQ..."
+            placeholder="gsk_..."
             class="flex-1 px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText"
           />
           <button
-            id="modal-toggle-gemini-vis-btn"
-            type="button"
-            class="px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
-          >
-            SHOW
-          </button>
-        </div>
-      </div>
-
-      <div class="space-y-1.5">
-        <label for="modal-openai-key-input" class="block font-mono text-xs text-cipherSubtext">
-          OPENAI CHATGPT API KEY
-        </label>
-        <div class="flex items-center gap-2">
-          <input
-            id="modal-openai-key-input"
-            type="password"
-            placeholder="sk-..."
-            class="flex-1 px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText"
-          />
-          <button
-            id="modal-toggle-openai-vis-btn"
+            id="modal-toggle-groq-vis-btn"
             type="button"
             class="px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
           >
@@ -943,7 +900,7 @@
           type="button"
           class="px-3.5 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-starkGold text-cipherMuted hover:text-starkGold font-mono text-xs cursor-pointer"
         >
-          CLEAR ACTIVE KEY
+          CLEAR KEY
         </button>
         <button
           id="modal-save-btn"
@@ -965,36 +922,29 @@
   ></div>
 
   <!-- =====================================================================
-       APPLICATION LOGIC (STATE, PERSISTENCE, GEMINI/OPENAI UPLINK & 3D HUD)
+       APPLICATION LOGIC (STATE, PERSISTENCE, GROQ UPLINK & 3D HUD)
        ===================================================================== -->
   <script>
     (function () {
       'use strict';
 
-      var DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
-      var DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+      var DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
 
       var STORAGE_KEYS = {
-        OPENAI_KEY: 'cipher_openai_api_key',
-        GEMINI_KEY: 'cipher_gemini_api_key',
-        ACTIVE_PROVIDER: 'cipher_active_provider',
-        LEGACY_GEMINI_KEY: 'cipher_hud_api_key',
+        GROQ_KEY: 'cipher_groq_api_key',
+        GROQ_MODEL: 'cipher_groq_model',
+        GROQ_MODELS_CACHE: 'cipher_groq_models_cache',
         DEMO_MODE: 'cipher_hud_demo',
-        OPENAI_MODEL: 'cipher_openai_model',
-        GEMINI_MODEL: 'cipher_gemini_model',
-        LEGACY_MODEL: 'cipher_hud_model',
         VIBE: 'cipher_hud_vibe',
         SESSIONS: 'cipher_hud_sessions'
       };
 
       var PROVIDER_MODELS = {
-        gemini: ['gemini-3.8-flash', 'gemini-2.5-flash'],
-        openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini']
+        groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
       };
 
       var PROVIDER_LABELS = {
-        gemini: 'GOOGLE GEMINI',
-        openai: 'OPENAI CHATGPT'
+        groq: 'GROQ'
       };
 
       var HUD_MODES = ['FLOW', 'PULSE', 'STILL'];
@@ -1006,8 +956,8 @@
           prompt: 'Break down how RAG + vector embeddings + reranking work together in a modern AI app'
         },
         {
-          code: 'MOD-02 // GEMINI & CHATGPT API',
-          prompt: 'Write a clean JavaScript helper for Gemini 3.8 Flash and OpenAI chat completions with error handling'
+          code: 'MOD-02 // GROQ API',
+          prompt: 'Write a clean JavaScript helper for Groq chat completions with retry and error handling'
         },
         {
           code: 'MOD-03 // SYSTEMS HUD',
@@ -1030,12 +980,10 @@
 
       var state = {
         screen: 'intro',
-        provider: 'gemini',
-        openaiKey: '',
-        geminiKey: '',
+        provider: 'groq',
+        groqKey: '',
         demoMode: true,
-        openaiModel: DEFAULT_OPENAI_MODEL,
-        geminiModel: DEFAULT_GEMINI_MODEL,
+        groqModel: DEFAULT_GROQ_MODEL,
         vibe: 'GEN-Z TECH',
         hudModeIndex: 0,
         filterQuery: '',
@@ -1045,47 +993,117 @@
         purgeArmed: false
       };
 
-      var modalDraftProvider = 'gemini';
       var dom = {};
       var toastTimer = null;
       var purgeArmTimer = null;
       var setSceneScreenFn = null;
       var resizeSceneFn = null;
+      var groqModelsCache = {
+        apiKey: '',
+        models: []
+      };
 
-      function normalizeGeminiModel(modelValue) {
+      function isChatCapableGroqModel(modelId) {
+        var id = String(modelId || '').trim();
+        if (!id) return false;
+        return !/whisper|guard|embedding|tts|orpheus|safeguard/i.test(id);
+      }
+
+      function normalizeGroqModel(modelValue) {
         var clean = String(modelValue || '').trim();
-        if (!clean || clean === 'gemini-2.5-flash' || clean === 'models/gemini-2.5-flash') {
-          return DEFAULT_GEMINI_MODEL;
+        var list = Array.isArray(PROVIDER_MODELS.groq) && PROVIDER_MODELS.groq.length > 0
+          ? PROVIDER_MODELS.groq
+          : [DEFAULT_GROQ_MODEL];
+        if (!clean || list.indexOf(clean) === -1) {
+          return list[0] || DEFAULT_GROQ_MODEL;
         }
         return clean;
       }
 
-      function getActiveApiKeyForProvider(providerName) {
-        if (providerName === 'openai') return state.openaiKey;
-        return state.geminiKey;
-      }
-
-      function getActiveModelForProvider(providerName) {
-        if (providerName === 'openai') {
-          return state.openaiModel || DEFAULT_OPENAI_MODEL;
+      function applyGroqModelList(modelsList) {
+        if (!Array.isArray(modelsList) || modelsList.length === 0) return;
+        PROVIDER_MODELS.groq = modelsList.slice();
+        if (PROVIDER_MODELS.groq.indexOf(state.groqModel) === -1) {
+          state.groqModel = PROVIDER_MODELS.groq[0];
+          saveConfig();
         }
-        return normalizeGeminiModel(state.geminiModel);
-      }
-
-      function setActiveModelForProvider(providerName, modelValue) {
-        if (providerName === 'openai') {
-          state.openaiModel = String(modelValue || '').trim() || DEFAULT_OPENAI_MODEL;
-        } else {
-          state.geminiModel = normalizeGeminiModel(modelValue);
+        syncHudStatus();
+        if (dom.apiConfigModal && !dom.apiConfigModal.classList.contains('hidden')) {
+          populateModelSelect(dom.modalModelSelect, getActiveModel());
         }
       }
 
-      function populateModelSelect(selectEl, providerName, selectedModel) {
+      async function fetchGroqAvailableModels(apiKey, forceRefresh) {
+        var key = String(apiKey || '').trim();
+        if (!key) {
+          return PROVIDER_MODELS.groq.slice();
+        }
+
+        if (!forceRefresh && groqModelsCache.apiKey === key && groqModelsCache.models.length > 0) {
+          applyGroqModelList(groqModelsCache.models);
+          return groqModelsCache.models.slice();
+        }
+
+        try {
+          var resp = await fetch('https://api.groq.com/openai/v1/models', {
+            method: 'GET',
+            headers: {
+              Authorization: 'Bearer ' + key
+            }
+          });
+          if (!resp.ok) {
+            return PROVIDER_MODELS.groq.slice();
+          }
+          var json = await resp.json();
+          var data = json && Array.isArray(json.data) ? json.data : [];
+          var filtered = [];
+          for (var i = 0; i < data.length; i++) {
+            var item = data[i];
+            if (!item || !item.id) continue;
+            if (item.active === false) continue;
+            if (!isChatCapableGroqModel(item.id)) continue;
+            if (filtered.indexOf(item.id) === -1) {
+              filtered.push(item.id);
+            }
+          }
+
+          if (filtered.length > 0) {
+            groqModelsCache.apiKey = key;
+            groqModelsCache.models = filtered.slice();
+            try {
+              localStorage.setItem(
+                STORAGE_KEYS.GROQ_MODELS_CACHE,
+                JSON.stringify({ keyLength: key.length, keyTail: key.slice(-6), models: filtered })
+              );
+            } catch (e) {
+              // Ignore storage error
+            }
+            applyGroqModelList(filtered);
+            return filtered.slice();
+          }
+        } catch (err) {
+          // Keep existing fallback list on network/auth error
+        }
+
+        return PROVIDER_MODELS.groq.slice();
+      }
+
+      function getActiveApiKey() {
+        return state.groqKey;
+      }
+
+      function getActiveModel() {
+        return normalizeGroqModel(state.groqModel);
+      }
+
+      function setActiveModel(modelValue) {
+        state.groqModel = normalizeGroqModel(modelValue);
+      }
+
+      function populateModelSelect(selectEl, selectedModel) {
         if (!selectEl) return;
-        var baseList = PROVIDER_MODELS[providerName] || PROVIDER_MODELS.gemini;
-        var list = baseList.slice();
-        var effectiveSelected =
-          providerName === 'gemini' ? normalizeGeminiModel(selectedModel) : String(selectedModel || '').trim();
+        var list = PROVIDER_MODELS.groq.slice();
+        var effectiveSelected = normalizeGroqModel(selectedModel);
 
         if (effectiveSelected && list.indexOf(effectiveSelected) === -1) {
           list.unshift(effectiveSelected);
@@ -1138,12 +1156,8 @@
 
         dom.apiConfigModal = document.getElementById('api-config-modal');
         dom.closeModalBtn = document.getElementById('close-modal-btn');
-        dom.providerGeminiBtn = document.getElementById('provider-gemini-btn');
-        dom.providerOpenaiBtn = document.getElementById('provider-openai-btn');
-        dom.modalGeminiKeyInput = document.getElementById('modal-gemini-key-input');
-        dom.modalToggleGeminiVisBtn = document.getElementById('modal-toggle-gemini-vis-btn');
-        dom.modalOpenaiKeyInput = document.getElementById('modal-openai-key-input');
-        dom.modalToggleOpenaiVisBtn = document.getElementById('modal-toggle-openai-vis-btn');
+        dom.modalGroqKeyInput = document.getElementById('modal-groq-key-input');
+        dom.modalToggleGroqVisBtn = document.getElementById('modal-toggle-groq-vis-btn');
         dom.modalModelSelect = document.getElementById('modal-model-select');
         dom.modalVibeSelect = document.getElementById('modal-vibe-select');
         dom.modalDemoCheckbox = document.getElementById('modal-demo-checkbox');
@@ -1208,7 +1222,7 @@
                   '- **Vector Recall:** Query nearest neighbors (`topK: 8`) using cosine similarity.\n' +
                   '- **Rerank & Synthesize:** Rank top candidates by relevance and feed grounded context into **C.I.P.H.E.R.**\n\n' +
                   '```javascript\nconst matches = await vectorIndex.query({ vector: queryEmbedding, topK: 8 });\nconst contextBlock = matches.slice(0, 4).map(m => m.text).join("\\n---\\n");\n```',
-                model: DEFAULT_GEMINI_MODEL,
+                model: DEFAULT_GROQ_MODEL,
                 timestamp: now - 1490000
               }
             ]
@@ -1224,44 +1238,46 @@
 
       function loadState() {
         try {
-          var savedOpenaiKey = localStorage.getItem(STORAGE_KEYS.OPENAI_KEY);
-          var savedGeminiKey =
-            localStorage.getItem(STORAGE_KEYS.GEMINI_KEY) || localStorage.getItem(STORAGE_KEYS.LEGACY_GEMINI_KEY);
-          var savedProvider = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER);
+          var savedGroqKey = localStorage.getItem(STORAGE_KEYS.GROQ_KEY);
           var savedDemo = localStorage.getItem(STORAGE_KEYS.DEMO_MODE);
-          var savedOpenaiModel = localStorage.getItem(STORAGE_KEYS.OPENAI_MODEL);
-          var savedGeminiModel =
-            localStorage.getItem(STORAGE_KEYS.GEMINI_MODEL) || localStorage.getItem(STORAGE_KEYS.LEGACY_MODEL);
+          var savedGroqModel = localStorage.getItem(STORAGE_KEYS.GROQ_MODEL);
           var savedVibe = localStorage.getItem(STORAGE_KEYS.VIBE);
           var savedSessionsRaw = localStorage.getItem(STORAGE_KEYS.SESSIONS);
 
-          state.openaiKey = savedOpenaiKey ? savedOpenaiKey.trim() : '';
-          state.geminiKey = savedGeminiKey ? savedGeminiKey.trim() : '';
+          state.provider = 'groq';
+          state.groqKey = savedGroqKey ? savedGroqKey.trim() : '';
 
-          if (savedProvider === 'openai' || savedProvider === 'gemini') {
-            state.provider = savedProvider;
-          } else if (state.geminiKey) {
-            state.provider = 'gemini';
-          } else if (state.openaiKey) {
-            state.provider = 'openai';
-          } else {
-            state.provider = 'gemini';
+          var savedCacheRaw = localStorage.getItem(STORAGE_KEYS.GROQ_MODELS_CACHE);
+          if (savedCacheRaw && state.groqKey) {
+            try {
+              var cachedObj = JSON.parse(savedCacheRaw);
+              if (
+                cachedObj &&
+                cachedObj.keyLength === state.groqKey.length &&
+                cachedObj.keyTail === state.groqKey.slice(-6) &&
+                Array.isArray(cachedObj.models) &&
+                cachedObj.models.length > 0
+              ) {
+                var validCached = cachedObj.models.filter(isChatCapableGroqModel);
+                if (validCached.length > 0) {
+                  PROVIDER_MODELS.groq = validCached;
+                  groqModelsCache.apiKey = state.groqKey;
+                  groqModelsCache.models = validCached.slice();
+                }
+              }
+            } catch (e) {
+              // Ignore malformed cache
+            }
           }
 
-          state.geminiModel = normalizeGeminiModel(savedGeminiModel);
-          if (savedOpenaiModel && String(savedOpenaiModel).trim()) {
-            state.openaiModel = String(savedOpenaiModel).trim();
-          } else {
-            state.openaiModel = DEFAULT_OPENAI_MODEL;
-          }
+          state.groqModel = normalizeGroqModel(savedGroqModel);
 
-          var activeKey = getActiveApiKeyForProvider(state.provider);
           if (savedDemo === null) {
-            state.demoMode = !activeKey;
+            state.demoMode = !state.groqKey;
           } else {
             state.demoMode = savedDemo === 'true';
           }
-          if (!state.demoMode && !activeKey) {
+          if (!state.demoMode && !state.groqKey) {
             state.demoMode = true;
           }
 
@@ -1272,17 +1288,6 @@
           if (savedSessionsRaw) {
             var parsed = JSON.parse(savedSessionsRaw);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              for (var s = 0; s < parsed.length; s++) {
-                var msgs = Array.isArray(parsed[s].messages) ? parsed[s].messages : [];
-                for (var m = 0; m < msgs.length; m++) {
-                  if (
-                    msgs[m] &&
-                    (msgs[m].model === 'gemini-2.5-flash' || msgs[m].model === 'models/gemini-2.5-flash')
-                  ) {
-                    msgs[m].model = DEFAULT_GEMINI_MODEL;
-                  }
-                }
-              }
               state.sessions = parsed;
             } else {
               state.sessions = buildInitialSessions();
@@ -1300,7 +1305,7 @@
         } catch (err) {
           state.sessions = buildInitialSessions();
           state.activeSessionId = state.sessions[state.sessions.length - 1].id;
-          state.geminiModel = DEFAULT_GEMINI_MODEL;
+          state.groqModel = DEFAULT_GROQ_MODEL;
           state.demoMode = true;
         }
       }
@@ -1315,14 +1320,9 @@
 
       function saveConfig() {
         try {
-          localStorage.setItem(STORAGE_KEYS.OPENAI_KEY, state.openaiKey);
-          localStorage.setItem(STORAGE_KEYS.GEMINI_KEY, state.geminiKey);
-          localStorage.setItem(STORAGE_KEYS.LEGACY_GEMINI_KEY, state.geminiKey);
-          localStorage.setItem(STORAGE_KEYS.ACTIVE_PROVIDER, state.provider);
+          localStorage.setItem(STORAGE_KEYS.GROQ_KEY, state.groqKey);
           localStorage.setItem(STORAGE_KEYS.DEMO_MODE, String(state.demoMode));
-          localStorage.setItem(STORAGE_KEYS.OPENAI_MODEL, state.openaiModel);
-          localStorage.setItem(STORAGE_KEYS.GEMINI_MODEL, normalizeGeminiModel(state.geminiModel));
-          localStorage.setItem(STORAGE_KEYS.LEGACY_MODEL, normalizeGeminiModel(state.geminiModel));
+          localStorage.setItem(STORAGE_KEYS.GROQ_MODEL, normalizeGroqModel(state.groqModel));
           localStorage.setItem(STORAGE_KEYS.VIBE, state.vibe);
         } catch (err) {
           // Ignore storage error
@@ -1473,8 +1473,8 @@
       }
 
       function syncHudStatus() {
-        var activeModel = getActiveModelForProvider(state.provider);
-        var activeKey = getActiveApiKeyForProvider(state.provider);
+        var activeModel = getActiveModel();
+        var activeKey = getActiveApiKey();
         var isLive = !state.demoMode && Boolean(activeKey);
         var modeText = isLive ? 'LIVE // ' + activeModel : 'DEMO MODE';
 
@@ -1483,21 +1483,18 @@
           dom.apiKeyBtn.textContent = isLive ? 'API KEY (LIVE)' : 'API KEY';
         }
         if (dom.providerPillBtn) {
-          dom.providerPillBtn.textContent = PROVIDER_LABELS[state.provider] || 'GOOGLE GEMINI';
+          dom.providerPillBtn.textContent = PROVIDER_LABELS.groq;
         }
         if (dom.introStatusPill) {
-          dom.introStatusPill.textContent = isLive
-            ? (state.provider === 'openai' ? 'CHATGPT LIVE' : 'GEMINI LIVE')
-            : 'DEMO MODE';
+          dom.introStatusPill.textContent = isLive ? 'GROQ LIVE' : 'DEMO MODE';
         }
         if (dom.introTelemetryLine) {
-          var providerTitle = PROVIDER_LABELS[state.provider] || 'GOOGLE GEMINI';
           dom.introTelemetryLine.textContent = isLive
-            ? 'TELEMETRY: ONLINE · ' + providerTitle + ' · ' + activeModel + ' · ' + state.vibe
-            : 'TELEMETRY: DEMO SANDBOX READY · ' + providerTitle + ' · ' + activeModel + ' · ' + state.vibe;
+            ? 'TELEMETRY: ONLINE · ' + PROVIDER_LABELS.groq + ' · ' + activeModel + ' · ' + state.vibe
+            : 'TELEMETRY: DEMO SANDBOX READY · ' + PROVIDER_LABELS.groq + ' · ' + activeModel + ' · ' + state.vibe;
         }
 
-        populateModelSelect(dom.modelSelect, state.provider, activeModel);
+        populateModelSelect(dom.modelSelect, activeModel);
 
         if (dom.vibeToggleBtn) {
           dom.vibeToggleBtn.textContent = state.vibe;
@@ -1896,7 +1893,7 @@
           return;
         }
 
-        var activeModel = getActiveModelForProvider(state.provider) || DEFAULT_GEMINI_MODEL;
+        var activeModel = getActiveModel() || DEFAULT_GROQ_MODEL;
 
         messages.forEach(function (msg) {
           var isUser = msg.role === 'user';
@@ -1909,7 +1906,7 @@
           var safeModel =
             rawModel && rawModel !== 'undefined' && rawModel !== 'null'
               ? rawModel
-              : (activeModel || 'UPLINK');
+              : (activeModel || 'GROQ');
           callsign.textContent = isUser ? 'OPERATOR // YOU' : 'C.I.P.H.E.R. // ' + safeModel;
 
           var bubble = document.createElement('div');
@@ -1957,28 +1954,28 @@
       function generateDemoReply(promptText) {
         var q = String(promptText || '').toLowerCase();
         var isTactical = state.vibe === 'TACTICAL HUD';
-        var activeModel = getActiveModelForProvider(state.provider);
-        var providerLabel = PROVIDER_LABELS[state.provider] || 'GOOGLE GEMINI';
+        var activeModel = getActiveModel();
+        var providerLabel = PROVIDER_LABELS.groq;
 
         if (
-          q.indexOf('gemini') !== -1 ||
-          q.indexOf('generatecontent') !== -1 ||
+          q.indexOf('groq') !== -1 ||
+          q.indexOf('llama') !== -1 ||
           q.indexOf('fetch') !== -1 ||
           q.indexOf('api') !== -1
         ) {
           return (
             (isTactical
-              ? 'Directive acknowledged. Here is a **Gemini generateContent** client module calibrated for `' +
+              ? 'Directive acknowledged. Here is a **Groq Chat Completions** client module calibrated for `' +
                 activeModel +
                 '` (' +
                 providerLabel +
                 '):\n\n'
-              : 'Bet — here is a clean **Gemini REST API** snippet using `' +
+              : 'Bet — here is a clean **Groq REST API** snippet using `' +
                 activeModel +
                 '` (' +
                 providerLabel +
                 '):\n\n') +
-            '```javascript\nexport async function askCipherGemini(apiKey, prompt, model = "gemini-3.8-flash") {\n  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;\n  const res = await fetch(endpoint, {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({\n      contents: [{ role: "user", parts: [{ text: prompt }] }]\n    })\n  });\n  if (!res.ok) {\n    throw new Error(`Gemini HTTP ${res.status}`);\n  }\n  const data = await res.json();\n  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";\n}\n```'
+            '```javascript\nexport async function askCipherGroq(apiKey, prompt, model = "llama-3.3-70b-versatile") {\n  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "Authorization": `Bearer ${apiKey}`\n    },\n    body: JSON.stringify({\n      model,\n      messages: [{ role: "user", content: prompt }]\n    })\n  });\n  if (!res.ok) {\n    throw new Error(`Groq HTTP ${res.status}`);\n  }\n  const data = await res.json();\n  return data.choices?.[0]?.message?.content ?? "";\n}\n```'
           );
         }
 
@@ -2009,77 +2006,36 @@
           '\n\n' +
           '- **1. Scope & Contracts:** Lock down latency budgets, data schemas, and error states first.\n' +
           '- **2. Core Loop:** Build the minimal vertical slice and verify state transitions.\n' +
-          '- **3. Live Uplink:** Add your Gemini or OpenAI ChatGPT API key in **API KEY** anytime for live model responses.'
+          '- **3. Live Uplink:** Add your Groq API key in **API KEY** anytime for live model responses.'
         );
       }
 
-      async function requestGeminiCompletion(session) {
-        var activeModel = getActiveModelForProvider('gemini');
-        var url =
-          'https://generativelanguage.googleapis.com/v1beta/models/' +
-          encodeURIComponent(activeModel) +
-          ':generateContent?key=' +
-          encodeURIComponent(state.geminiKey);
-
-        var contents = [];
-        var list = Array.isArray(session.messages) ? session.messages : [];
-        for (var i = 0; i < list.length; i++) {
-          var item = list[i];
-          if (item.isError) continue;
-          contents.push({
-            role: item.role === 'model' ? 'model' : 'user',
-            parts: [{ text: String(item.text || '') }]
-          });
-        }
-
-        var systemText = SYSTEM_PROMPTS[state.vibe] || SYSTEM_PROMPTS['GEN-Z TECH'];
-
-        var resp = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemText }]
-            },
-            contents: contents
-          })
+      function sleepMs(ms) {
+        return new Promise(function (resolve) {
+          setTimeout(resolve, ms);
         });
-
-        var json = null;
-        try {
-          json = await resp.json();
-        } catch (err) {
-          throw new Error('Malformed JSON response (HTTP ' + resp.status + ')');
-        }
-
-        if (!resp.ok) {
-          var message =
-            json && json.error && json.error.message
-              ? json.error.message
-              : 'Gemini API request failed (HTTP ' + resp.status + ')';
-          throw new Error(message);
-        }
-
-        var cand = json && Array.isArray(json.candidates) ? json.candidates[0] : null;
-        var parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];
-        var output = parts
-          .map(function (p) {
-            return p && typeof p.text === 'string' ? p.text : '';
-          })
-          .join('')
-          .trim();
-
-        if (!output) {
-          throw new Error('Empty response received from Gemini.');
-        }
-
-        return output;
       }
 
-      async function requestOpenAIChatCompletion(session) {
-        var activeModel = getActiveModelForProvider('openai');
+      function isTransientGroqError(err) {
+        if (!err) return false;
+        if (err.status === 429 || err.status === 503) return true;
+        var msg = String(err.message || '');
+        return /\b(429|503)\b|rate.?limit|too many requests|high demand|overloaded|capacity|temporarily unavailable/i.test(
+          msg
+        );
+      }
+
+      function isModelNotFoundError(err) {
+        if (!err) return false;
+        if (err.status === 404 || err.code === 'model_not_found') return true;
+        var msg = String(err.message || '');
+        return /model_not_found|does not exist or you do not have access to it|unknown model|model .* not found/i.test(
+          msg
+        );
+      }
+
+      async function requestGroqSingleModel(session, modelName) {
+        var targetModel = String(modelName || '').trim() || getActiveModel();
         var systemText = SYSTEM_PROMPTS[state.vibe] || SYSTEM_PROMPTS['GEN-Z TECH'];
 
         var messages = [
@@ -2092,21 +2048,21 @@
         var list = Array.isArray(session.messages) ? session.messages : [];
         for (var i = 0; i < list.length; i++) {
           var item = list[i];
-          if (item.isError) continue;
+          if (!item || item.isError) continue;
           messages.push({
             role: item.role === 'model' || item.role === 'assistant' ? 'assistant' : 'user',
             content: String(item.text || '')
           });
         }
 
-        var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + state.openaiKey
+            Authorization: 'Bearer ' + state.groqKey
           },
           body: JSON.stringify({
-            model: activeModel,
+            model: targetModel,
             messages: messages
           })
         });
@@ -2115,15 +2071,23 @@
         try {
           json = await resp.json();
         } catch (err) {
-          throw new Error('Malformed JSON response from OpenAI (HTTP ' + resp.status + ')');
+          var parseErr = new Error('Malformed JSON response from Groq (HTTP ' + resp.status + ')');
+          parseErr.status = resp.status;
+          parseErr.model = targetModel;
+          throw parseErr;
         }
 
         if (!resp.ok) {
+          var errObj = json && json.error ? json.error : null;
           var message =
-            json && json.error && json.error.message
-              ? json.error.message
-              : 'OpenAI API request failed (HTTP ' + resp.status + ')';
-          throw new Error(message);
+            errObj && errObj.message
+              ? errObj.message
+              : 'Groq API request failed (HTTP ' + resp.status + ')';
+          var httpErr = new Error(message);
+          httpErr.status = resp.status;
+          httpErr.code = errObj && errObj.code ? String(errObj.code) : '';
+          httpErr.model = targetModel;
+          throw httpErr;
         }
 
         var choice = json && Array.isArray(json.choices) ? json.choices[0] : null;
@@ -2138,17 +2102,97 @@
 
         var output = String(content || '').trim();
         if (!output) {
-          throw new Error('Empty response received from OpenAI ChatGPT.');
+          var emptyErr = new Error('Empty response received from Groq.');
+          emptyErr.model = targetModel;
+          throw emptyErr;
         }
 
         return output;
       }
 
       async function requestActiveProviderCompletion(session) {
-        if (state.provider === 'openai') {
-          return requestOpenAIChatCompletion(session);
+        var primaryModel = getActiveModel();
+        var candidates = [primaryModel];
+        for (var i = 0; i < PROVIDER_MODELS.groq.length; i++) {
+          var m = PROVIDER_MODELS.groq[i];
+          if (candidates.indexOf(m) === -1) {
+            candidates.push(m);
+          }
         }
-        return requestGeminiCompletion(session);
+
+        var lastError = null;
+        var lastAttemptedModel = primaryModel;
+        var refreshedModels = false;
+
+        for (var c = 0; c < candidates.length; c++) {
+          var candidateModel = candidates[c];
+          lastAttemptedModel = candidateModel;
+
+          for (var attempt = 0; attempt < 2; attempt++) {
+            try {
+              var text = await requestGroqSingleModel(session, candidateModel);
+              if (candidateModel !== state.groqModel) {
+                state.groqModel = candidateModel;
+                saveConfig();
+                syncHudStatus();
+              }
+              return { text: text, model: candidateModel };
+            } catch (err) {
+              lastError = err;
+              if (lastError && !lastError.model) {
+                lastError.model = candidateModel;
+              }
+
+              if (isModelNotFoundError(err)) {
+                if (!refreshedModels) {
+                  refreshedModels = true;
+                  var liveModels = await fetchGroqAvailableModels(state.groqKey, true);
+                  var fallbackModel = null;
+                  for (var k = 0; k < liveModels.length; k++) {
+                    if (liveModels[k] !== candidateModel) {
+                      fallbackModel = liveModels[k];
+                      break;
+                    }
+                  }
+                  if (!fallbackModel && liveModels.length > 0) {
+                    fallbackModel = liveModels[0];
+                  }
+                  if (fallbackModel) {
+                    state.groqModel = fallbackModel;
+                    saveConfig();
+                    syncHudStatus();
+                    lastAttemptedModel = fallbackModel;
+                    try {
+                      var retryText = await requestGroqSingleModel(session, fallbackModel);
+                      return { text: retryText, model: fallbackModel };
+                    } catch (retryErr) {
+                      lastError = retryErr;
+                      if (lastError && !lastError.model) {
+                        lastError.model = fallbackModel;
+                      }
+                    }
+                  }
+                }
+                break;
+              }
+
+              if (!isTransientGroqError(err)) {
+                throw err;
+              }
+              if (attempt === 0) {
+                await sleepMs(600);
+              }
+            }
+          }
+        }
+
+        if (lastError) {
+          if (!lastError.model) lastError.model = lastAttemptedModel || 'GROQ';
+          throw lastError;
+        }
+        var fallbackErr = new Error('Groq API request failed across all candidate models.');
+        fallbackErr.model = lastAttemptedModel || 'GROQ';
+        throw fallbackErr;
       }
 
       function sendPromptMessage(rawText) {
@@ -2184,8 +2228,8 @@
         renderChatStream();
         syncTelemetryBar();
 
-        var activeKey = getActiveApiKeyForProvider(state.provider);
-        var activeModel = getActiveModelForProvider(state.provider) || DEFAULT_GEMINI_MODEL;
+        var activeKey = getActiveApiKey();
+        var activeModel = getActiveModel() || DEFAULT_GROQ_MODEL;
         var useDemo = state.demoMode || !activeKey;
 
         if (useDemo) {
@@ -2195,7 +2239,7 @@
               id: 'm_' + Date.now(),
               role: 'model',
               text: reply,
-              model: activeModel,
+              model: activeModel || 'GROQ',
               timestamp: Date.now()
             });
             session.updatedAt = Date.now();
@@ -2209,22 +2253,25 @@
         }
 
         requestActiveProviderCompletion(session)
-          .then(function (reply) {
+          .then(function (result) {
+            var replyText = result && result.text ? result.text : '';
+            var replyModel = (result && result.model) || getActiveModel() || activeModel || 'GROQ';
             session.messages.push({
               id: 'm_' + Date.now(),
               role: 'model',
-              text: reply,
-              model: activeModel,
+              text: replyText,
+              model: replyModel,
               timestamp: Date.now()
             });
             session.updatedAt = Date.now();
           })
           .catch(function (err) {
+            var errModel = (err && err.model) || getActiveModel() || activeModel || 'GROQ';
             session.messages.push({
               id: 'e_' + Date.now(),
               role: 'model',
-              text: 'UPLINK ERROR: ' + (err && err.message ? err.message : 'Unable to reach AI provider'),
-              model: activeModel,
+              text: 'UPLINK ERROR: ' + (err && err.message ? err.message : 'Unable to reach Groq API'),
+              model: errModel,
               isError: true,
               timestamp: Date.now()
             });
@@ -2245,59 +2292,28 @@
         dom.promptTextarea.style.height = Math.min(dom.promptTextarea.scrollHeight, 144) + 'px';
       }
 
-      function syncModalProviderUI(providerName) {
-        modalDraftProvider = providerName === 'openai' ? 'openai' : 'gemini';
-        var isGemini = modalDraftProvider === 'gemini';
-
-        if (dom.providerGeminiBtn) {
-          dom.providerGeminiBtn.className =
-            'py-2 px-3 rounded-lg bg-cipherVoid font-mono text-xs font-semibold transition cursor-pointer ' +
-            (isGemini
-              ? 'border border-arcCyan text-arcCyan'
-              : 'border border-cipherLine text-cipherSubtext hover:border-cipherLineStrong');
-        }
-        if (dom.providerOpenaiBtn) {
-          dom.providerOpenaiBtn.className =
-            'py-2 px-3 rounded-lg bg-cipherVoid font-mono text-xs font-semibold transition cursor-pointer ' +
-            (!isGemini
-              ? 'border border-arcCyan text-arcCyan'
-              : 'border border-cipherLine text-cipherSubtext hover:border-cipherLineStrong');
-        }
-
-        var draftModel = getActiveModelForProvider(modalDraftProvider);
-        populateModelSelect(dom.modalModelSelect, modalDraftProvider, draftModel);
-      }
-
       function openConfigModal() {
         if (!dom.apiConfigModal) return;
-        if (dom.modalGeminiKeyInput) {
-          dom.modalGeminiKeyInput.value = state.geminiKey;
-          dom.modalGeminiKeyInput.type = 'password';
+        if (dom.modalGroqKeyInput) {
+          dom.modalGroqKeyInput.value = state.groqKey;
+          dom.modalGroqKeyInput.type = 'password';
         }
-        if (dom.modalOpenaiKeyInput) {
-          dom.modalOpenaiKeyInput.value = state.openaiKey;
-          dom.modalOpenaiKeyInput.type = 'password';
-        }
-        if (dom.modalToggleGeminiVisBtn) dom.modalToggleGeminiVisBtn.textContent = 'SHOW';
-        if (dom.modalToggleOpenaiVisBtn) dom.modalToggleOpenaiVisBtn.textContent = 'SHOW';
+        if (dom.modalToggleGroqVisBtn) dom.modalToggleGroqVisBtn.textContent = 'SHOW';
         if (dom.modalVibeSelect) dom.modalVibeSelect.value = state.vibe;
 
-        syncModalProviderUI(state.provider);
+        populateModelSelect(dom.modalModelSelect, getActiveModel());
 
-        var draftKey =
-          modalDraftProvider === 'openai'
-            ? (dom.modalOpenaiKeyInput ? dom.modalOpenaiKeyInput.value.trim() : state.openaiKey)
-            : (dom.modalGeminiKeyInput ? dom.modalGeminiKeyInput.value.trim() : state.geminiKey);
-
+        var draftKey = dom.modalGroqKeyInput ? dom.modalGroqKeyInput.value.trim() : state.groqKey;
         if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = state.demoMode || !draftKey;
 
         dom.apiConfigModal.classList.remove('hidden');
         dom.apiConfigModal.classList.add('flex');
+        if (state.groqKey) {
+          fetchGroqAvailableModels(state.groqKey, false);
+        }
         setTimeout(function () {
-          if (modalDraftProvider === 'openai' && dom.modalOpenaiKeyInput) {
-            dom.modalOpenaiKeyInput.focus();
-          } else if (dom.modalGeminiKeyInput) {
-            dom.modalGeminiKeyInput.focus();
+          if (dom.modalGroqKeyInput) {
+            dom.modalGroqKeyInput.focus();
           }
         }, 40);
       }
@@ -2345,10 +2361,10 @@
 
         if (dom.modelSelect) {
           dom.modelSelect.addEventListener('change', function () {
-            setActiveModelForProvider(state.provider, dom.modelSelect.value);
+            setActiveModel(dom.modelSelect.value);
             saveConfig();
             syncHudStatus();
-            triggerToast('Model: ' + getActiveModelForProvider(state.provider));
+            triggerToast('Model: ' + getActiveModel());
           });
         }
 
@@ -2400,89 +2416,56 @@
           });
         }
 
-        if (dom.providerGeminiBtn) {
-          dom.providerGeminiBtn.addEventListener('click', function () {
-            if (dom.modalModelSelect) {
-              setActiveModelForProvider(modalDraftProvider, dom.modalModelSelect.value);
-            }
-            syncModalProviderUI('gemini');
-          });
-        }
-
-        if (dom.providerOpenaiBtn) {
-          dom.providerOpenaiBtn.addEventListener('click', function () {
-            if (dom.modalModelSelect) {
-              setActiveModelForProvider(modalDraftProvider, dom.modalModelSelect.value);
-            }
-            syncModalProviderUI('openai');
-          });
-        }
-
-        if (dom.modalToggleGeminiVisBtn && dom.modalGeminiKeyInput) {
-          dom.modalToggleGeminiVisBtn.addEventListener('click', function () {
-            var isPw = dom.modalGeminiKeyInput.type === 'password';
-            dom.modalGeminiKeyInput.type = isPw ? 'text' : 'password';
-            dom.modalToggleGeminiVisBtn.textContent = isPw ? 'HIDE' : 'SHOW';
-          });
-        }
-
-        if (dom.modalToggleOpenaiVisBtn && dom.modalOpenaiKeyInput) {
-          dom.modalToggleOpenaiVisBtn.addEventListener('click', function () {
-            var isPw = dom.modalOpenaiKeyInput.type === 'password';
-            dom.modalOpenaiKeyInput.type = isPw ? 'text' : 'password';
-            dom.modalToggleOpenaiVisBtn.textContent = isPw ? 'HIDE' : 'SHOW';
+        if (dom.modalToggleGroqVisBtn && dom.modalGroqKeyInput) {
+          dom.modalToggleGroqVisBtn.addEventListener('click', function () {
+            var isPw = dom.modalGroqKeyInput.type === 'password';
+            dom.modalGroqKeyInput.type = isPw ? 'text' : 'password';
+            dom.modalToggleGroqVisBtn.textContent = isPw ? 'HIDE' : 'SHOW';
           });
         }
 
         if (dom.modalClearKeyBtn) {
           dom.modalClearKeyBtn.addEventListener('click', function () {
-            if (modalDraftProvider === 'openai') {
-              if (dom.modalOpenaiKeyInput) dom.modalOpenaiKeyInput.value = '';
-              state.openaiKey = '';
-            } else {
-              if (dom.modalGeminiKeyInput) dom.modalGeminiKeyInput.value = '';
-              state.geminiKey = '';
-            }
-            if (state.provider === modalDraftProvider) {
-              state.demoMode = true;
-              if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = true;
-            }
+            if (dom.modalGroqKeyInput) dom.modalGroqKeyInput.value = '';
+            state.groqKey = '';
+            state.demoMode = true;
+            if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = true;
             saveConfig();
             syncHudStatus();
-            triggerToast((PROVIDER_LABELS[modalDraftProvider] || 'Provider') + ' key cleared');
+            triggerToast(PROVIDER_LABELS.groq + ' key cleared');
           });
         }
 
         if (dom.modalSaveBtn) {
           dom.modalSaveBtn.addEventListener('click', function () {
-            var enteredGemini = dom.modalGeminiKeyInput ? dom.modalGeminiKeyInput.value.trim() : '';
-            var enteredOpenai = dom.modalOpenaiKeyInput ? dom.modalOpenaiKeyInput.value.trim() : '';
+            var enteredGroq = dom.modalGroqKeyInput ? dom.modalGroqKeyInput.value.trim() : '';
             var demoChecked = dom.modalDemoCheckbox ? dom.modalDemoCheckbox.checked : false;
             var chosenModel = dom.modalModelSelect ? dom.modalModelSelect.value : '';
             var chosenVibe = dom.modalVibeSelect ? dom.modalVibeSelect.value : state.vibe;
 
-            state.geminiKey = enteredGemini;
-            state.openaiKey = enteredOpenai;
-            state.provider = modalDraftProvider === 'openai' ? 'openai' : 'gemini';
+            state.groqKey = enteredGroq;
+            state.provider = 'groq';
 
             if (chosenModel) {
-              setActiveModelForProvider(state.provider, chosenModel);
+              setActiveModel(chosenModel);
             }
 
             if (chosenVibe === 'GEN-Z TECH' || chosenVibe === 'TACTICAL HUD') {
               state.vibe = chosenVibe;
             }
 
-            var activeKey = getActiveApiKeyForProvider(state.provider);
-            state.demoMode = !activeKey ? true : demoChecked;
+            state.demoMode = !state.groqKey ? true : demoChecked;
 
             saveConfig();
             syncHudStatus();
             closeConfigModal();
+            if (state.groqKey) {
+              fetchGroqAvailableModels(state.groqKey, true);
+            }
             triggerToast(
               state.demoMode
                 ? 'Saved · Demo Mode'
-                : 'Saved · ' + (PROVIDER_LABELS[state.provider] || 'Provider') + ' Live'
+                : 'Saved · ' + PROVIDER_LABELS.groq + ' Live'
             );
           });
         }
@@ -2767,6 +2750,9 @@
         loadState();
         attachListeners();
         syncHudStatus();
+        if (state.groqKey) {
+          fetchGroqAvailableModels(state.groqKey, false);
+        }
         renderSessionList();
         renderChatStream();
         syncTelemetryBar();
