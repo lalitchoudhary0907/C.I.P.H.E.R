@@ -110,11 +110,11 @@
     }
     .cipher-ring-cw {
       transform-origin: center;
-      animation: cipherSpinSlow 26s linear infinite;
+      animation: cipherSpinSlow 22s linear infinite;
     }
     .cipher-ring-ccw {
       transform-origin: center;
-      animation: cipherSpinReverse 18s linear infinite;
+      animation: cipherSpinReverse 16s linear infinite;
     }
     .cipher-reactor-core {
       animation: cipherPulseGlow 3.6s ease-in-out infinite;
@@ -349,11 +349,13 @@
     <header class="max-w-7xl w-full mx-auto flex items-center justify-between gap-3 flex-wrap shrink-0">
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full bg-[#091929] border border-cyan-400/40 flex items-center justify-center shadow-[0_0_14px_rgba(0,229,255,0.24)]">
-            <svg viewBox="0 0 36 36" class="w-5 h-5" fill="none" aria-hidden="true">
-              <circle cx="18" cy="18" r="15" stroke="#00E5FF" stroke-opacity="0.35" stroke-width="1.2" />
-              <polygon points="18,27 9.5,12 26.5,12" stroke="#00E5FF" stroke-width="2" fill="rgba(0,229,255,0.16)" />
-              <polygon points="18,22.5 13.5,14.5 22.5,14.5" fill="#7DD3FC" />
+          <div class="w-8 h-8 rounded-full bg-[#07111d] border border-slate-500/40 flex items-center justify-center shadow-[0_0_16px_rgba(0,229,255,0.28)]">
+            <svg viewBox="0 0 36 36" class="w-6 h-6" fill="none" aria-hidden="true">
+              <circle cx="18" cy="18" r="15.5" stroke="#334155" stroke-width="2" />
+              <circle cx="18" cy="18" r="12" stroke="#00E5FF" stroke-width="3.2" stroke-opacity="0.88" stroke-dasharray="6.2 3.2" />
+              <circle cx="18" cy="18" r="9.2" fill="#040c16" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="0.9" />
+              <polygon points="18,24.5 11.5,13 24.5,13" stroke="#00E5FF" stroke-width="1.6" fill="rgba(0,229,255,0.22)" />
+              <polygon points="18,21.5 14,14.5 22,14.5" fill="#E0F9FF" />
             </svg>
           </div>
           <div>
@@ -427,9 +429,9 @@
     </header>
 
     <!-- Intro Centerpiece Hero -->
-    <main class="relative z-10 max-w-3xl w-full mx-auto my-auto py-4 flex flex-col items-center text-center space-y-5">
+    <main class="relative z-10 max-w-3xl w-full mx-auto my-auto py-2 flex flex-col items-center text-center space-y-3.5 sm:space-y-4">
       <!-- Flanking Overline + Display Title -->
-      <div class="space-y-1.5">
+      <div class="space-y-1">
         <div class="flex items-center justify-center gap-3">
           <span class="w-12 sm:w-16 h-px bg-gradient-to-r from-transparent to-cyan-400/70"></span>
           <span class="font-mono text-[11px] tracking-[0.34em] text-arcCyan uppercase">C . I . P . H . E . R .</span>
@@ -443,34 +445,11 @@
         </p>
       </div>
 
-      <!-- Central Glowing 6-Segment Arc-Reactor Core -->
+      <!-- Central Glowing 3D Metallic Mark-VI Arc-Reactor Core -->
       <div
         id="intro-reactor-wrap"
-        class="relative w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center cipher-reactor-core transition-transform duration-200 ease-out"
-      >
-        <svg viewBox="0 0 240 240" class="w-full h-full" fill="none" aria-hidden="true">
-          <defs>
-            <radialGradient id="introCoreGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.38" />
-              <stop offset="62%" stop-color="#0284c7" stop-opacity="0.14" />
-              <stop offset="100%" stop-color="#000000" stop-opacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx="120" cy="120" r="108" fill="url(#introCoreGrad)" />
-          <g class="cipher-ring-cw">
-            <circle cx="120" cy="120" r="98" stroke="#38BDF8" stroke-opacity="0.32" stroke-width="1.2" stroke-dasharray="52 16 14 16" />
-            <circle cx="120" cy="120" r="85" stroke="#00E5FF" stroke-opacity="0.6" stroke-width="2" stroke-dasharray="64 20 20 20" />
-          </g>
-          <g class="cipher-ring-ccw">
-            <!-- 6 Glowing Cyan Segments (circumference ~ 2*pi*66 = 414.7 -> 6 * (46 + 23.1)) -->
-            <circle cx="120" cy="120" r="66" stroke="#00E5FF" stroke-width="11" stroke-opacity="0.82" stroke-dasharray="46 23.1" />
-            <circle cx="120" cy="120" r="53" stroke="#7DD3FC" stroke-opacity="0.5" stroke-width="1.5" />
-          </g>
-          <circle cx="120" cy="120" r="46" fill="#04101c" stroke="#00E5FF" stroke-opacity="0.72" stroke-width="1.5" />
-          <polygon points="120,152 88,97 152,97" stroke="#00E5FF" stroke-width="3" fill="rgba(0,229,255,0.18)" />
-          <polygon points="120,141 98,103 142,103" stroke="#E0F2FE" stroke-width="1.6" fill="rgba(125,211,252,0.24)" />
-        </svg>
-      </div>
+        class="relative w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] flex items-center justify-center cipher-reactor-core transition-transform duration-200 ease-out"
+      ></div>
 
       <!-- Headline + Subtext -->
       <div class="space-y-2 max-w-xl">
@@ -583,11 +562,13 @@
           title="Return to Intro Gate"
           class="flex items-center gap-3 text-left group cursor-pointer"
         >
-          <div class="w-9 h-9 rounded-full bg-[#091929] border border-cyan-400/35 group-hover:border-arcCyan flex items-center justify-center shadow-[0_0_16px_rgba(0,229,255,0.22)] transition">
+          <div class="w-9 h-9 rounded-full bg-[#07111d] border border-slate-500/40 group-hover:border-arcCyan flex items-center justify-center shadow-[0_0_16px_rgba(0,229,255,0.28)] transition">
             <svg viewBox="0 0 36 36" class="w-6 h-6" fill="none" aria-hidden="true">
-              <circle cx="18" cy="18" r="15" stroke="#00E5FF" stroke-opacity="0.35" stroke-width="1.2" />
-              <polygon points="18,27 9.5,12 26.5,12" stroke="#00E5FF" stroke-width="2" fill="rgba(0,229,255,0.16)" />
-              <polygon points="18,22.5 13.5,14.5 22.5,14.5" fill="#7DD3FC" />
+              <circle cx="18" cy="18" r="15.5" stroke="#334155" stroke-width="2" />
+              <circle cx="18" cy="18" r="12" stroke="#00E5FF" stroke-width="3.2" stroke-opacity="0.88" stroke-dasharray="6.2 3.2" />
+              <circle cx="18" cy="18" r="9.2" fill="#040c16" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="0.9" />
+              <polygon points="18,24.5 11.5,13 24.5,13" stroke="#00E5FF" stroke-width="1.6" fill="rgba(0,229,255,0.22)" />
+              <polygon points="18,21.5 14,14.5 22,14.5" fill="#E0F9FF" />
             </svg>
           </div>
           <div>
@@ -1970,32 +1951,174 @@
         input.select();
       }
 
-      function buildCenterReactorSvg() {
-        var wrap = document.createElement('div');
-        wrap.className = 'flex items-center justify-center py-2';
-        wrap.innerHTML =
-          '<div class="relative w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center cipher-reactor-core">' +
-          '<svg viewBox="0 0 240 240" class="w-full h-full" fill="none" aria-hidden="true">' +
+      function buildMark6ReactorSvg(uidPrefix) {
+        var p = String(uidPrefix || 'mk6');
+        var cx = 130;
+        var cy = 130;
+
+        function polar(r, deg) {
+          var rad = (deg * Math.PI) / 180;
+          return {
+            x: (cx + r * Math.cos(rad)).toFixed(2),
+            y: (cy + r * Math.sin(rad)).toFixed(2)
+          };
+        }
+
+        // 8 recessed dark metallic sockets + 8 luminous cyan energy cells
+        var socketsMarkup = '';
+        var coilsMarkup = '';
+        var strutsMarkup = '';
+        for (var i = 0; i < 8; i++) {
+          var aStart = i * 45 - 15.5;
+          var aEnd = i * 45 + 15.5;
+          var sO1 = polar(73, aStart - 1.4);
+          var sO2 = polar(73, aEnd + 1.4);
+          var sI2 = polar(46, aEnd);
+          var sI1 = polar(46, aStart);
+          var sd =
+            'M ' + sO1.x + ' ' + sO1.y +
+            ' A 73 73 0 0 1 ' + sO2.x + ' ' + sO2.y +
+            ' L ' + sI2.x + ' ' + sI2.y +
+            ' A 46 46 0 0 0 ' + sI1.x + ' ' + sI1.y + ' Z';
+          socketsMarkup += '<path d="' + sd + '" fill="#02060c" stroke="#1e293b" stroke-width="1.2" />';
+
+          var o1 = polar(69.5, aStart);
+          var o2 = polar(69.5, aEnd);
+          var i2 = polar(48.5, aEnd - 1.2);
+          var i1 = polar(48.5, aStart + 1.2);
+          var d =
+            'M ' + o1.x + ' ' + o1.y +
+            ' A 69.5 69.5 0 0 1 ' + o2.x + ' ' + o2.y +
+            ' L ' + i2.x + ' ' + i2.y +
+            ' A 48.5 48.5 0 0 0 ' + i1.x + ' ' + i1.y + ' Z';
+          coilsMarkup +=
+            '<path d="' + d + '" fill="url(#' + p + 'CoilGrad)" stroke="#e0f9ff" stroke-opacity="0.72" stroke-width="0.8" />';
+
+          // Machined metallic divider strut between sockets
+          var divAng = i * 45 + 22.5;
+          var d1 = polar(45, divAng);
+          var d2 = polar(76, divAng);
+          strutsMarkup +=
+            '<line x1="' + d1.x + '" y1="' + d1.y + '" x2="' + d2.x + '" y2="' + d2.y + '" stroke="#070c14" stroke-width="4.5" />' +
+            '<line x1="' + d1.x + '" y1="' + d1.y + '" x2="' + d2.x + '" y2="' + d2.y + '" stroke="#3b5270" stroke-opacity="0.65" stroke-width="1.2" />';
+        }
+
+        // 16 subtle machined bezel ticks
+        var ticksMarkup = '';
+        for (var t = 0; t < 16; t++) {
+          var ang = t * 22.5;
+          var p1 = polar(78, ang);
+          var p2 = polar(87, ang);
+          ticksMarkup +=
+            '<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p2.x + '" y2="' + p2.y + '" stroke="#020617" stroke-width="1.8" stroke-opacity="0.85" />' +
+            '<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p2.x + '" y2="' + p2.y + '" stroke="#3b5270" stroke-width="0.6" stroke-opacity="0.45" />';
+        }
+
+        // 4 cardinal glowing cyan emitter nodes at 12, 3, 6, 9 o'clock
+        var emittersMarkup = '';
+        var cardinals = [-90, 0, 90, 180];
+        for (var e = 0; e < cardinals.length; e++) {
+          var ep = polar(83, cardinals[e]);
+          emittersMarkup +=
+            '<circle cx="' + ep.x + '" cy="' + ep.y + '" r="5.2" fill="#070c14" stroke="#334155" stroke-width="1" />' +
+            '<circle cx="' + ep.x + '" cy="' + ep.y + '" r="4.2" fill="#00d2ff" fill-opacity="0.55" filter="url(#' + p + 'Bloom)" />' +
+            '<circle cx="' + ep.x + '" cy="' + ep.y + '" r="2" fill="#ffffff" />';
+        }
+
+        return (
+          '<svg viewBox="0 0 260 260" class="w-full h-full" fill="none" aria-hidden="true">' +
           '<defs>' +
-          '<radialGradient id="cipherCoreGrad" cx="50%" cy="50%" r="50%">' +
-          '<stop offset="0%" stop-color="#00E5FF" stop-opacity="0.32" />' +
-          '<stop offset="65%" stop-color="#0284c7" stop-opacity="0.12" />' +
+          '<filter id="' + p + 'Bloom" x="-45%" y="-45%" width="190%" height="190%">' +
+          '<feGaussianBlur stdDeviation="4.8" result="blur" />' +
+          '<feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>' +
+          '</filter>' +
+          '<radialGradient id="' + p + 'Ambient" cx="50%" cy="50%" r="50%">' +
+          '<stop offset="0%" stop-color="#00d2ff" stop-opacity="0.44" />' +
+          '<stop offset="52%" stop-color="#0369a1" stop-opacity="0.18" />' +
           '<stop offset="100%" stop-color="#000000" stop-opacity="0" />' +
           '</radialGradient>' +
+          '<linearGradient id="' + p + 'HousingMetal" x1="12%" y1="8%" x2="88%" y2="92%">' +
+          '<stop offset="0%" stop-color="#3b5270" />' +
+          '<stop offset="22%" stop-color="#182436" />' +
+          '<stop offset="48%" stop-color="#2d3e56" />' +
+          '<stop offset="74%" stop-color="#0c1320" />' +
+          '<stop offset="100%" stop-color="#070c14" />' +
+          '</linearGradient>' +
+          '<linearGradient id="' + p + 'InnerBevelMetal" x1="85%" y1="15%" x2="15%" y2="85%">' +
+          '<stop offset="0%" stop-color="#2d3e56" />' +
+          '<stop offset="45%" stop-color="#0c1320" />' +
+          '<stop offset="100%" stop-color="#3b5270" />' +
+          '</linearGradient>' +
+          '<linearGradient id="' + p + 'Sheen" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.22" />' +
+          '<stop offset="40%" stop-color="#e0f2fe" stop-opacity="0" />' +
+          '<stop offset="100%" stop-color="#94a3b8" stop-opacity="0.10" />' +
+          '</linearGradient>' +
+          '<radialGradient id="' + p + 'CoilGrad" cx="50%" cy="50%" r="56%">' +
+          '<stop offset="0%" stop-color="#ffffff" />' +
+          '<stop offset="38%" stop-color="#38e8ff" />' +
+          '<stop offset="72%" stop-color="#00d2ff" />' +
+          '<stop offset="100%" stop-color="#0369a1" />' +
+          '</radialGradient>' +
+          '<radialGradient id="' + p + 'TriCoreGrad" cx="50%" cy="42%" r="60%">' +
+          '<stop offset="0%" stop-color="#ffffff" />' +
+          '<stop offset="45%" stop-color="#bae6fd" />' +
+          '<stop offset="80%" stop-color="#38e8ff" />' +
+          '<stop offset="100%" stop-color="#0369a1" />' +
+          '</radialGradient>' +
           '</defs>' +
-          '<circle cx="120" cy="120" r="106" fill="url(#cipherCoreGrad)" />' +
+
+          '<circle cx="130" cy="130" r="122" fill="url(#' + p + 'Ambient)" />' +
+
+          '<!-- Outer Orbital Hairline Arcs -->' +
           '<g class="cipher-ring-cw">' +
-          '<circle cx="120" cy="120" r="98" stroke="#38BDF8" stroke-opacity="0.28" stroke-width="1.2" stroke-dasharray="48 16 12 16" />' +
-          '<circle cx="120" cy="120" r="84" stroke="#00E5FF" stroke-opacity="0.55" stroke-width="2" stroke-dasharray="60 18 22 18" />' +
+          '<circle cx="130" cy="130" r="115" stroke="#00D8FF" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="58 28 16 30" />' +
+          '<circle cx="130" cy="130" r="105" stroke="#38BDF8" stroke-opacity="0.5" stroke-width="1.4" stroke-dasharray="76 34 22 36" />' +
           '</g>' +
           '<g class="cipher-ring-ccw">' +
-          '<circle cx="120" cy="120" r="66" stroke="#00E5FF" stroke-width="11" stroke-opacity="0.82" stroke-dasharray="46 23.1" />' +
-          '<circle cx="120" cy="120" r="53" stroke="#7DD3FC" stroke-opacity="0.5" stroke-width="1.5" />' +
+          '<circle cx="130" cy="130" r="98" stroke="#00d2ff" stroke-opacity="0.28" stroke-width="1" stroke-dasharray="40 24 14 26" />' +
           '</g>' +
-          '<circle cx="120" cy="120" r="46" fill="#04101c" stroke="#00E5FF" stroke-opacity="0.65" stroke-width="1.5" />' +
-          '<polygon points="120,152 88,97 152,97" stroke="#00E5FF" stroke-width="3" fill="rgba(0,229,255,0.16)" />' +
-          '<polygon points="120,141 98,103 142,103" stroke="#E0F2FE" stroke-width="1.5" fill="rgba(125,211,252,0.22)" />' +
-          '</svg>' +
+
+          '<!-- Solid Brushed Gunmetal / Titanium Outer Housing -->' +
+          '<circle cx="130" cy="130" r="92" fill="url(#' + p + 'HousingMetal)" stroke="#00d2ff" stroke-opacity="0.35" stroke-width="1.2" />' +
+          '<circle cx="130" cy="130" r="90.5" stroke="url(#' + p + 'Sheen)" stroke-width="1.6" />' +
+          '<circle cx="130" cy="130" r="85" stroke="#070c14" stroke-width="1.4" />' +
+          '<circle cx="130" cy="130" r="76" fill="#04080f" stroke="#182436" stroke-width="1.8" />' +
+          ticksMarkup +
+          emittersMarkup +
+
+          '<!-- 8 Recessed Sockets, Divider Struts & Luminous Cyan Energy Cells -->' +
+          socketsMarkup +
+          '<g filter="url(#' + p + 'Bloom)">' + coilsMarkup + '</g>' +
+          '<g>' + coilsMarkup + '</g>' +
+          strutsMarkup +
+
+          '<!-- Inner Machined Metallic Ring & Layered Inverted Triangle Core -->' +
+          '<circle cx="130" cy="130" r="46" fill="url(#' + p + 'InnerBevelMetal)" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="1.2" />' +
+          '<circle cx="130" cy="130" r="41" fill="#060c15" stroke="#020617" stroke-width="2" />' +
+          '<circle cx="130" cy="130" r="39" stroke="#2d3e56" stroke-opacity="0.5" stroke-width="0.9" />' +
+
+          '<!-- Outer Machined Triangle Bezel -->' +
+          '<polygon points="130,165 92,102 168,102" fill="#0c1320" stroke="#3b5270" stroke-width="1.6" />' +
+          '<!-- Luminous Cyan Triangle Frame -->' +
+          '<polygon points="130,160 97,105 163,105" fill="url(#' + p + 'TriCoreGrad)" filter="url(#' + p + 'Bloom)" stroke="#e0f9ff" stroke-width="1" />' +
+          '<!-- 3 Machined Y-Struts separating outer bars from inner core -->' +
+          '<line x1="92" y1="102" x2="112" y2="115" stroke="#0c1320" stroke-width="3.2" />' +
+          '<line x1="168" y1="102" x2="148" y2="115" stroke="#0c1320" stroke-width="3.2" />' +
+          '<line x1="130" y1="165" x2="130" y2="146" stroke="#0c1320" stroke-width="3.2" />' +
+          '<!-- Inner Recessed Metallic Triangle Socket & White-Hot Core -->' +
+          '<polygon points="130,149 109,114 151,114" fill="#070c14" stroke="#38BDF8" stroke-opacity="0.8" stroke-width="1.2" />' +
+          '<polygon points="130,143 114,117 146,117" fill="#ffffff" filter="url(#' + p + 'Bloom)" />' +
+          '</svg>'
+        );
+      }
+
+      function buildCenterReactorSvg() {
+        var wrap = document.createElement('div');
+        wrap.className = 'flex items-center justify-center py-1';
+        wrap.innerHTML =
+          '<div class="relative w-[240px] h-[240px] md:w-[250px] md:h-[250px] lg:w-[290px] lg:h-[290px] flex items-center justify-center cipher-reactor-core">' +
+          buildMark6ReactorSvg('ws') +
           '</div>';
         return wrap;
       }
@@ -2045,10 +2168,10 @@
 
       function renderEmptyState() {
         var container = document.createElement('div');
-        container.className = 'max-w-5xl mx-auto min-h-full flex flex-col items-center justify-center py-4 space-y-6';
+        container.className = 'max-w-6xl mx-auto min-h-full flex flex-col items-center justify-center py-3 space-y-5';
 
         var hero = document.createElement('div');
-        hero.className = 'text-center space-y-2';
+        hero.className = 'text-center space-y-1.5';
 
         var overline = document.createElement('p');
         overline.className = 'font-mono text-[11px] tracking-[0.28em] text-slate-400 uppercase';
@@ -2067,7 +2190,7 @@
         hero.appendChild(sub);
 
         var middleGrid = document.createElement('div');
-        middleGrid.className = 'w-full grid grid-cols-1 lg:grid-cols-3 gap-5 items-center';
+        middleGrid.className = 'w-full grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-center';
 
         var leftCol = document.createElement('div');
         leftCol.className = 'space-y-3.5';
@@ -3586,6 +3709,9 @@
 
       document.addEventListener('DOMContentLoaded', function () {
         cacheElements();
+        if (dom.introReactorWrap) {
+          dom.introReactorWrap.innerHTML = buildMark6ReactorSvg('intro');
+        }
         loadState();
         attachListeners();
         syncHudStatus();
