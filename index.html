@@ -740,6 +740,24 @@
           </button>
 
           <button
+            id="voice-jarvis-btn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            title="Toggle J.A.R.V.I.S. voice command listener"
+          >
+            VOICE // JARVIS
+          </button>
+
+          <button
+            id="voice-readout-btn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-starkGold font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            title="Toggle automatic J.A.R.V.I.S. voice readout"
+          >
+            SPEAK: OFF
+          </button>
+
+          <button
             id="hud-motion-btn"
             type="button"
             class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
@@ -936,6 +954,7 @@
         GROQ_MODELS_CACHE: 'cipher_groq_models_cache',
         DEMO_MODE: 'cipher_hud_demo',
         VIBE: 'cipher_hud_vibe',
+        VOICE_READOUT: 'cipher_hud_voice_readout',
         SESSIONS: 'cipher_hud_sessions'
       };
 
@@ -990,7 +1009,11 @@
         sessions: [],
         activeSessionId: null,
         isGenerating: false,
-        purgeArmed: false
+        purgeArmed: false,
+        editingMessageId: null,
+        voiceListening: false,
+        voiceReadoutEnabled: false,
+        speakingMessageId: null
       };
 
       var dom = {};
@@ -998,6 +1021,7 @@
       var purgeArmTimer = null;
       var setSceneScreenFn = null;
       var resizeSceneFn = null;
+      var speechRecognitionInstance = null;
       var groqModelsCache = {
         apiKey: '',
         models: []
@@ -1142,6 +1166,8 @@
 
         dom.modelSelect = document.getElementById('model-select');
         dom.apiKeyBtn = document.getElementById('api-key-btn');
+        dom.voiceJarvisBtn = document.getElementById('voice-jarvis-btn');
+        dom.voiceReadoutBtn = document.getElementById('voice-readout-btn');
         dom.hudMotionBtn = document.getElementById('hud-motion-btn');
         dom.threadTitleDisplay = document.getElementById('thread-title-display');
         dom.threadMsgCount = document.getElementById('thread-msg-count');
@@ -1242,6 +1268,7 @@
           var savedDemo = localStorage.getItem(STORAGE_KEYS.DEMO_MODE);
           var savedGroqModel = localStorage.getItem(STORAGE_KEYS.GROQ_MODEL);
           var savedVibe = localStorage.getItem(STORAGE_KEYS.VIBE);
+          var savedVoiceReadout = localStorage.getItem(STORAGE_KEYS.VOICE_READOUT);
           var savedSessionsRaw = localStorage.getItem(STORAGE_KEYS.SESSIONS);
 
           state.provider = 'groq';
@@ -1284,6 +1311,7 @@
           if (savedVibe === 'GEN-Z TECH' || savedVibe === 'TACTICAL HUD') {
             state.vibe = savedVibe;
           }
+          state.voiceReadoutEnabled = savedVoiceReadout === 'true';
 
           if (savedSessionsRaw) {
             var parsed = JSON.parse(savedSessionsRaw);
@@ -1324,6 +1352,7 @@
           localStorage.setItem(STORAGE_KEYS.DEMO_MODE, String(state.demoMode));
           localStorage.setItem(STORAGE_KEYS.GROQ_MODEL, normalizeGroqModel(state.groqModel));
           localStorage.setItem(STORAGE_KEYS.VIBE, state.vibe);
+          localStorage.setItem(STORAGE_KEYS.VOICE_READOUT, String(state.voiceReadoutEnabled));
         } catch (err) {
           // Ignore storage error
         }
@@ -1347,6 +1376,8 @@
       }
 
       function createSession(skipRender) {
+        state.editingMessageId = null;
+        stopVoiceReadout();
         var fresh = {
           id: 'cipher_sess_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
           title: 'New Session',
@@ -1387,6 +1418,8 @@
         if (index === -1) return;
 
         state.sessions.splice(index, 1);
+        state.editingMessageId = null;
+        stopVoiceReadout();
         if (state.sessions.length === 0) {
           createSession(true);
         } else if (state.activeSessionId === sessionId) {
@@ -1425,6 +1458,8 @@
         }
 
         disarmPurgeButton();
+        state.editingMessageId = null;
+        stopVoiceReadout();
         state.sessions = [];
         createSession(true);
         saveSessions();
@@ -1498,6 +1533,22 @@
 
         if (dom.vibeToggleBtn) {
           dom.vibeToggleBtn.textContent = state.vibe;
+        }
+        if (dom.voiceJarvisBtn) {
+          dom.voiceJarvisBtn.textContent = state.voiceListening ? 'JARVIS: LISTENING' : 'VOICE // JARVIS';
+          dom.voiceJarvisBtn.className =
+            'px-2.5 py-1.5 rounded-lg bg-cipherVoid font-mono text-xs transition cursor-pointer ' +
+            (state.voiceListening
+              ? 'border border-starkGold text-starkGold shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+              : 'border border-cipherLine hover:border-arcCyan text-cipherSubtext');
+        }
+        if (dom.voiceReadoutBtn) {
+          dom.voiceReadoutBtn.textContent = state.voiceReadoutEnabled ? 'SPEAK: ON' : 'SPEAK: OFF';
+          dom.voiceReadoutBtn.className =
+            'px-2.5 py-1.5 rounded-lg bg-cipherVoid font-mono text-xs transition cursor-pointer ' +
+            (state.voiceReadoutEnabled
+              ? 'border border-arcCyan text-arcCyan'
+              : 'border border-cipherLine hover:border-starkGold text-cipherSubtext');
         }
         if (dom.hudMotionBtn) {
           dom.hudMotionBtn.textContent = 'HUD: ' + HUD_MODES[state.hudModeIndex];
@@ -1573,6 +1624,8 @@
           clickBox.addEventListener('click', function () {
             if (state.isGenerating) return;
             state.activeSessionId = sess.id;
+            state.editingMessageId = null;
+            stopVoiceReadout();
             closeSidebarDrawer();
             renderSessionList();
             renderChatStream();
@@ -1894,23 +1947,160 @@
         }
 
         var activeModel = getActiveModel() || DEFAULT_GROQ_MODEL;
+        var lastUserMsgIndex = -1;
+        for (var idx = messages.length - 1; idx >= 0; idx--) {
+          if (messages[idx] && messages[idx].role === 'user') {
+            lastUserMsgIndex = idx;
+            break;
+          }
+        }
 
-        messages.forEach(function (msg) {
+        messages.forEach(function (msg, msgIndex) {
           var isUser = msg.role === 'user';
+          var isEditing = isUser && state.editingMessageId === msg.id;
           var wrapper = document.createElement('div');
           wrapper.className = 'flex flex-col ' + (isUser ? 'items-end' : 'items-start');
 
-          var callsign = document.createElement('div');
-          callsign.className = 'font-mono text-[10px] mb-1 px-1 ' + (isUser ? 'text-starkGold' : 'text-arcCyan');
+          var headerRow = document.createElement('div');
+          headerRow.className =
+            'flex items-center gap-2 mb-1 px-1 flex-wrap ' + (isUser ? 'justify-end' : 'justify-start');
+
+          var callsign = document.createElement('span');
+          callsign.className = 'font-mono text-[10px] ' + (isUser ? 'text-starkGold' : 'text-arcCyan');
           var rawModel = msg && typeof msg.model === 'string' ? msg.model.trim() : '';
           var safeModel =
             rawModel && rawModel !== 'undefined' && rawModel !== 'null'
               ? rawModel
               : (activeModel || 'GROQ');
           callsign.textContent = isUser ? 'OPERATOR // YOU' : 'C.I.P.H.E.R. // ' + safeModel;
+          headerRow.appendChild(callsign);
+
+          var actionGroup = document.createElement('div');
+          actionGroup.className = 'flex items-center gap-1';
+
+          var msgCopyBtn = document.createElement('button');
+          msgCopyBtn.type = 'button';
+          msgCopyBtn.className =
+            'px-1.5 py-0.5 rounded border border-cipherLine/70 hover:border-arcCyan font-mono text-[9px] text-cipherMuted hover:text-arcCyan transition cursor-pointer';
+          msgCopyBtn.textContent = 'COPY';
+          msgCopyBtn.addEventListener('click', (function (textToCopy, btnEl) {
+            return function () {
+              copyToClipboard(textToCopy, function () {
+                btnEl.textContent = 'COPIED';
+                setTimeout(function () {
+                  btnEl.textContent = 'COPY';
+                }, 1500);
+              });
+            };
+          })(String(msg.text || ''), msgCopyBtn));
+          actionGroup.appendChild(msgCopyBtn);
+
+          if (isUser && !isEditing) {
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className =
+              'px-1.5 py-0.5 rounded border border-cipherLine/70 hover:border-starkGold font-mono text-[9px] text-cipherMuted hover:text-starkGold transition cursor-pointer';
+            editBtn.textContent = 'EDIT';
+            editBtn.addEventListener('click', (function (targetId) {
+              return function () {
+                if (state.isGenerating) return;
+                state.editingMessageId = targetId;
+                renderChatStream();
+              };
+            })(msg.id));
+            actionGroup.appendChild(editBtn);
+          }
+
+          if (!isUser && !msg.isError) {
+            var isSpeakingThis = state.speakingMessageId === msg.id;
+            var speakBtn = document.createElement('button');
+            speakBtn.type = 'button';
+            speakBtn.className =
+              'px-1.5 py-0.5 rounded border font-mono text-[9px] transition cursor-pointer ' +
+              (isSpeakingThis
+                ? 'border-starkGold text-starkGold'
+                : 'border-cipherLine/70 hover:border-arcCyan text-cipherMuted hover:text-arcCyan');
+            speakBtn.textContent = isSpeakingThis ? 'MUTE' : 'SPEAK';
+            speakBtn.addEventListener('click', (function (textToSpeak, targetMsgId) {
+              return function () {
+                if (state.speakingMessageId === targetMsgId) {
+                  stopVoiceReadout();
+                } else {
+                  speakMessageText(textToSpeak, targetMsgId);
+                }
+              };
+            })(String(msg.text || ''), msg.id));
+            actionGroup.appendChild(speakBtn);
+          }
+
+          headerRow.appendChild(actionGroup);
 
           var bubble = document.createElement('div');
-          if (isUser) {
+          if (isEditing) {
+            bubble.className =
+              'w-full max-w-[92%] sm:max-w-[78%] p-3 rounded-2xl rounded-tr-sm bg-cipherPanel border border-arcCyan shadow-hudSurface space-y-2';
+
+            var editArea = document.createElement('textarea');
+            editArea.rows = 3;
+            editArea.value = String(msg.text || '');
+            editArea.className =
+              'w-full px-3 py-2 rounded-lg bg-cipherBlack border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs sm:text-sm text-cipherText leading-relaxed resize-y';
+
+            var editControls = document.createElement('div');
+            editControls.className = 'flex items-center justify-end gap-1.5 flex-wrap';
+
+            var cancelEditBtn = document.createElement('button');
+            cancelEditBtn.type = 'button';
+            cancelEditBtn.className =
+              'px-2.5 py-1 rounded-lg bg-cipherBlack border border-cipherLine hover:border-starkGold font-mono text-[10px] text-cipherSubtext cursor-pointer';
+            cancelEditBtn.textContent = 'CANCEL';
+            cancelEditBtn.addEventListener('click', function () {
+              state.editingMessageId = null;
+              renderChatStream();
+            });
+
+            var saveEditBtn = document.createElement('button');
+            saveEditBtn.type = 'button';
+            saveEditBtn.className =
+              'px-2.5 py-1 rounded-lg bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-[10px] tracking-wider cursor-pointer';
+            saveEditBtn.textContent = 'SAVE';
+            saveEditBtn.addEventListener('click', function () {
+              saveEditedMessage(session, msgIndex, editArea.value, false);
+            });
+
+            editControls.appendChild(cancelEditBtn);
+            editControls.appendChild(saveEditBtn);
+
+            if (msgIndex === lastUserMsgIndex) {
+              var rerunEditBtn = document.createElement('button');
+              rerunEditBtn.type = 'button';
+              rerunEditBtn.className =
+                'px-2.5 py-1 rounded-lg bg-cipherBlack border border-starkGold text-starkGold hover:bg-starkGold hover:text-cipherBlack font-hud font-bold text-[10px] tracking-wider transition cursor-pointer';
+              rerunEditBtn.textContent = 'SAVE & RE-RUN';
+              rerunEditBtn.addEventListener('click', function () {
+                saveEditedMessage(session, msgIndex, editArea.value, true);
+              });
+              editControls.appendChild(rerunEditBtn);
+            }
+
+            editArea.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveEditedMessage(session, msgIndex, editArea.value, false);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                state.editingMessageId = null;
+                renderChatStream();
+              }
+            });
+
+            bubble.appendChild(editArea);
+            bubble.appendChild(editControls);
+            setTimeout(function () {
+              editArea.focus();
+              editArea.setSelectionRange(editArea.value.length, editArea.value.length);
+            }, 20);
+          } else if (isUser) {
             bubble.className =
               'max-w-[88%] sm:max-w-[74%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-cipherPanel/90 border border-cipherLineStrong text-cipherText text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-hudSurface';
             bubble.textContent = msg.text;
@@ -1924,7 +2114,7 @@
             bubble.appendChild(buildRichMessageContent(msg.text));
           }
 
-          wrapper.appendChild(callsign);
+          wrapper.appendChild(headerRow);
           wrapper.appendChild(bubble);
           dom.chatStream.appendChild(wrapper);
         });
@@ -2195,31 +2385,181 @@
         throw fallbackErr;
       }
 
-      function sendPromptMessage(rawText) {
-        if (state.isGenerating) return;
-        var text = String(rawText || '').trim();
-        if (!text) return;
+      function stripMarkdownForSpeech(rawText) {
+        return String(rawText || '')
+          .replace(/```[\s\S]*?```/g, ' Code block omitted. ')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1')
+          .replace(/^#{1,6}\s+/gm, '')
+          .replace(/^>\s+/gm, '')
+          .replace(/^[-*]\s+/gm, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
 
-        var session = getActiveSession();
-        if (!Array.isArray(session.messages)) session.messages = [];
+      function stopVoiceReadout() {
+        state.speakingMessageId = null;
+        try {
+          if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+        } catch (err) {
+          // Ignore synthesis cancel error
+        }
+        if (state.screen === 'chat') {
+          renderChatStream();
+        }
+      }
 
-        if (session.messages.length === 0 && (!session.title || session.title === 'New Session')) {
-          session.title = text.length > 34 ? text.slice(0, 34).trim() + '...' : text;
+      function speakMessageText(rawText, messageId) {
+        try {
+          if (typeof window === 'undefined' || !('speechSynthesis' in window) || !window.speechSynthesis) {
+            triggerToast('Speech synthesis unavailable in this browser.');
+            return;
+          }
+          var cleanText = stripMarkdownForSpeech(rawText);
+          if (!cleanText) return;
+
+          window.speechSynthesis.cancel();
+          state.speakingMessageId = messageId || null;
+          renderChatStream();
+
+          var utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.rate = 1.03;
+          utterance.pitch = 0.96;
+
+          try {
+            var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+            if (Array.isArray(voices) && voices.length > 0) {
+              for (var i = 0; i < voices.length; i++) {
+                if (voices[i] && /^en/i.test(voices[i].lang || '')) {
+                  utterance.voice = voices[i];
+                  break;
+                }
+              }
+            }
+          } catch (voiceErr) {
+            // Use default browser voice
+          }
+
+          utterance.onend = function () {
+            if (state.speakingMessageId === messageId) {
+              state.speakingMessageId = null;
+              renderChatStream();
+            }
+          };
+          utterance.onerror = function () {
+            if (state.speakingMessageId === messageId) {
+              state.speakingMessageId = null;
+              renderChatStream();
+            }
+          };
+
+          window.speechSynthesis.speak(utterance);
+        } catch (err) {
+          state.speakingMessageId = null;
+          triggerToast('Unable to start voice readout.');
+        }
+      }
+
+      function toggleJarvisVoiceListener() {
+        var SpeechRecognitionCtor =
+          typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+        if (!SpeechRecognitionCtor) {
+          triggerToast('Speech recognition unavailable in this browser; text input active.');
+          return;
         }
 
-        session.messages.push({
-          id: 'u_' + Date.now(),
-          role: 'user',
-          text: text,
-          timestamp: Date.now()
-        });
-        session.updatedAt = Date.now();
-
-        if (dom.promptTextarea) {
-          dom.promptTextarea.value = '';
-          autoResizePrompt();
+        if (state.voiceListening && speechRecognitionInstance) {
+          try {
+            speechRecognitionInstance.stop();
+          } catch (err) {
+            // Ignore stop error
+          }
+          state.voiceListening = false;
+          syncHudStatus();
+          triggerToast('J.A.R.V.I.S. voice listener standing by');
+          return;
         }
 
+        try {
+          var recognition = new SpeechRecognitionCtor();
+          recognition.lang = 'en-US';
+          recognition.interimResults = false;
+          recognition.continuous = false;
+          recognition.maxAlternatives = 1;
+
+          recognition.onstart = function () {
+            state.voiceListening = true;
+            syncHudStatus();
+            triggerToast('J.A.R.V.I.S. listening... speak directive');
+          };
+
+          recognition.onresult = function (event) {
+            try {
+              var transcript = '';
+              if (event && event.results && event.results[0] && event.results[0][0]) {
+                transcript = String(event.results[0][0].transcript || '').trim();
+              }
+              if (!transcript) return;
+
+              var stripped = transcript
+                .replace(/^(?:hey\s+)?(?:jarvis|cipher|c\.i\.p\.h\.e\.r\.?)[,:\s-]*/i, '')
+                .trim();
+
+              if (!stripped) {
+                triggerToast('J.A.R.V.I.S. online. Issue a full directive.');
+                return;
+              }
+
+              if (/^(?:stop\s+speaking|mute|quiet|silence)$/i.test(stripped)) {
+                stopVoiceReadout();
+                triggerToast('Voice readout muted');
+                return;
+              }
+
+              if (dom.promptTextarea) {
+                dom.promptTextarea.value = stripped;
+                autoResizePrompt();
+              }
+              sendPromptMessage(stripped);
+            } catch (resErr) {
+              triggerToast('Voice command parse failed.');
+            }
+          };
+
+          recognition.onerror = function (event) {
+            state.voiceListening = false;
+            syncHudStatus();
+            var code = event && event.error ? event.error : 'unknown';
+            if (code === 'not-allowed' || code === 'service-not-allowed') {
+              triggerToast('Microphone permission denied for J.A.R.V.I.S. voice.');
+            } else if (code === 'no-speech') {
+              triggerToast('No speech detected; J.A.R.V.I.S. standing by.');
+            } else if (code !== 'aborted') {
+              triggerToast('Voice recognition error: ' + code);
+            }
+          };
+
+          recognition.onend = function () {
+            state.voiceListening = false;
+            speechRecognitionInstance = null;
+            syncHudStatus();
+          };
+
+          speechRecognitionInstance = recognition;
+          recognition.start();
+        } catch (err) {
+          state.voiceListening = false;
+          speechRecognitionInstance = null;
+          syncHudStatus();
+          triggerToast('Unable to initialize speech recognition.');
+        }
+      }
+
+      function dispatchSessionCompletion(session, promptText) {
         state.isGenerating = true;
         if (dom.transmitBtn) dom.transmitBtn.disabled = true;
 
@@ -2234,20 +2574,24 @@
 
         if (useDemo) {
           setTimeout(function () {
-            var reply = generateDemoReply(text);
-            session.messages.push({
+            var reply = generateDemoReply(promptText);
+            var msgObj = {
               id: 'm_' + Date.now(),
               role: 'model',
               text: reply,
               model: activeModel || 'GROQ',
               timestamp: Date.now()
-            });
+            };
+            session.messages.push(msgObj);
             session.updatedAt = Date.now();
             state.isGenerating = false;
             if (dom.transmitBtn) dom.transmitBtn.disabled = false;
             saveSessions();
             renderSessionList();
             renderChatStream();
+            if (state.voiceReadoutEnabled) {
+              speakMessageText(reply, msgObj.id);
+            }
           }, 380);
           return;
         }
@@ -2256,14 +2600,18 @@
           .then(function (result) {
             var replyText = result && result.text ? result.text : '';
             var replyModel = (result && result.model) || getActiveModel() || activeModel || 'GROQ';
-            session.messages.push({
+            var msgObj = {
               id: 'm_' + Date.now(),
               role: 'model',
               text: replyText,
               model: replyModel,
               timestamp: Date.now()
-            });
+            };
+            session.messages.push(msgObj);
             session.updatedAt = Date.now();
+            if (state.voiceReadoutEnabled && replyText) {
+              speakMessageText(replyText, msgObj.id);
+            }
           })
           .catch(function (err) {
             var errModel = (err && err.model) || getActiveModel() || activeModel || 'GROQ';
@@ -2284,6 +2632,68 @@
             renderSessionList();
             renderChatStream();
           });
+      }
+
+      function saveEditedMessage(session, msgIndex, nextText, shouldRerun) {
+        if (!session || !Array.isArray(session.messages) || !session.messages[msgIndex]) return;
+        var clean = String(nextText || '').trim();
+        if (!clean) {
+          triggerToast('Message cannot be empty');
+          return;
+        }
+
+        session.messages[msgIndex].text = clean;
+        session.updatedAt = Date.now();
+        state.editingMessageId = null;
+
+        if (msgIndex === 0) {
+          session.title = clean.length > 34 ? clean.slice(0, 34).trim() + '...' : clean;
+        }
+
+        if (shouldRerun && !state.isGenerating) {
+          session.messages.splice(msgIndex + 1);
+          stopVoiceReadout();
+          triggerToast('Directive updated · Re-running C.I.P.H.E.R.');
+          dispatchSessionCompletion(session, clean);
+          return;
+        }
+
+        saveSessions();
+        renderSessionList();
+        renderChatStream();
+        syncTelemetryBar();
+        triggerToast('Message updated');
+      }
+
+      function sendPromptMessage(rawText) {
+        if (state.isGenerating) return;
+        var text = String(rawText || '').trim();
+        if (!text) return;
+
+        var session = getActiveSession();
+        if (!Array.isArray(session.messages)) session.messages = [];
+
+        if (session.messages.length === 0 && (!session.title || session.title === 'New Session')) {
+          session.title = text.length > 34 ? text.slice(0, 34).trim() + '...' : text;
+        }
+
+        state.editingMessageId = null;
+        stopVoiceReadout();
+
+        session.messages.push({
+          id: 'u_' + Date.now(),
+          role: 'user',
+          text: text,
+          timestamp: Date.now()
+        });
+        session.updatedAt = Date.now();
+
+        if (dom.promptTextarea) {
+          dom.promptTextarea.value = '';
+          autoResizePrompt();
+        }
+
+        dispatchSessionCompletion(session, text);
       }
 
       function autoResizePrompt() {
@@ -2382,6 +2792,22 @@
         }
 
         if (dom.apiKeyBtn) dom.apiKeyBtn.addEventListener('click', openConfigModal);
+
+        if (dom.voiceJarvisBtn) {
+          dom.voiceJarvisBtn.addEventListener('click', toggleJarvisVoiceListener);
+        }
+
+        if (dom.voiceReadoutBtn) {
+          dom.voiceReadoutBtn.addEventListener('click', function () {
+            state.voiceReadoutEnabled = !state.voiceReadoutEnabled;
+            if (!state.voiceReadoutEnabled) {
+              stopVoiceReadout();
+            }
+            saveConfig();
+            syncHudStatus();
+            triggerToast(state.voiceReadoutEnabled ? 'J.A.R.V.I.S. voice readout ON' : 'J.A.R.V.I.S. voice readout OFF');
+          });
+        }
 
         if (dom.hudMotionBtn) {
           dom.hudMotionBtn.addEventListener('click', function () {
