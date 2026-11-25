@@ -287,10 +287,38 @@
 
     .cipher-hud-box {
       position: relative;
-      background: rgba(2, 16, 28, 0.80);
-      border: 1px solid rgba(0, 229, 255, 0.30);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: linear-gradient(155deg, rgba(7, 24, 38, 0.62), rgba(3, 12, 21, 0.76));
+      border: 1px solid rgba(125, 211, 252, 0.24);
+      box-shadow:
+        inset 0 1px 0 rgba(224, 242, 254, 0.14),
+        inset 0 -10px 24px rgba(0, 0, 0, 0.35),
+        0 12px 32px rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(20px) saturate(120%);
+      -webkit-backdrop-filter: blur(20px) saturate(120%);
+    }
+
+    .cipher-user-glass {
+      position: relative;
+      background: linear-gradient(155deg, rgba(8, 34, 54, 0.64), rgba(4, 17, 29, 0.78));
+      border: 1px solid rgba(56, 189, 248, 0.34);
+      box-shadow:
+        inset 0 1px 0 rgba(224, 242, 254, 0.16),
+        inset 0 -10px 22px rgba(0, 0, 0, 0.32),
+        0 10px 28px rgba(0, 0, 0, 0.48);
+      backdrop-filter: blur(18px) saturate(120%);
+      -webkit-backdrop-filter: blur(18px) saturate(120%);
+    }
+
+    .cipher-error-glass {
+      position: relative;
+      background: linear-gradient(155deg, rgba(58, 28, 7, 0.68), rgba(28, 12, 3, 0.80));
+      border: 1px solid rgba(251, 191, 36, 0.42);
+      box-shadow:
+        inset 0 1px 0 rgba(254, 243, 199, 0.14),
+        inset 0 -10px 22px rgba(0, 0, 0, 0.34),
+        0 10px 28px rgba(0, 0, 0, 0.48);
+      backdrop-filter: blur(18px) saturate(115%);
+      -webkit-backdrop-filter: blur(18px) saturate(115%);
     }
 
     .cipher-starter-box {
@@ -1784,12 +1812,28 @@
               '</code>';
           } else {
             var safe = escapeHtml(tok);
+            safe = safe.replace(/&lt;br\s*\/?&gt;/gi, '<br />');
             safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-cipherText">$1</strong>');
             safe = safe.replace(/\*([^*\n]+)\*/g, '<em class="italic text-cipherText/95">$1</em>');
             out += safe;
           }
         }
         return out;
+      }
+
+      function isMarkdownTableSeparator(line) {
+        var clean = String(line || '').trim();
+        if (clean.indexOf('|') === -1) return false;
+        return /^\|?(?:\s*:?-{2,}:?\s*\|)+\s*(?::?-{2,}:?\s*\|?)?$/.test(clean);
+      }
+
+      function parseMarkdownTableRow(line) {
+        var clean = String(line || '').trim();
+        if (clean.charAt(0) === '|') clean = clean.slice(1);
+        if (clean.charAt(clean.length - 1) === '|') clean = clean.slice(0, -1);
+        return clean.split('|').map(function (cell) {
+          return cell.trim();
+        });
       }
 
       function buildRichMessageContent(markdownText) {
@@ -1811,6 +1855,60 @@
 
               if (!trimmed) {
                 activeList = null;
+                continue;
+              }
+
+              if (
+                trimmed.indexOf('|') !== -1 &&
+                l + 1 < lines.length &&
+                isMarkdownTableSeparator(lines[l + 1])
+              ) {
+                activeList = null;
+                var headers = parseMarkdownTableRow(trimmed);
+                var tableWrap = document.createElement('div');
+                tableWrap.className =
+                  'my-2.5 overflow-x-auto rounded-xl border border-cipherLine/70 bg-cipherBlack/45';
+
+                var table = document.createElement('table');
+                table.className = 'w-full text-left border-collapse text-xs sm:text-sm';
+
+                var thead = document.createElement('thead');
+                thead.className = 'bg-cipherVoid/70 border-b border-cipherLine/70';
+                var headTr = document.createElement('tr');
+                for (var h = 0; h < headers.length; h++) {
+                  var th = document.createElement('th');
+                  th.className =
+                    'px-3 py-2 font-mono text-[11px] font-semibold text-arcCyan tracking-wide whitespace-nowrap';
+                  th.innerHTML = renderInlineMarkdown(headers[h]);
+                  headTr.appendChild(th);
+                }
+                thead.appendChild(headTr);
+                table.appendChild(thead);
+
+                var tbody = document.createElement('tbody');
+                l += 2;
+                while (l < lines.length) {
+                  var rowTrimmed = lines[l].trim();
+                  if (!rowTrimmed || rowTrimmed.indexOf('|') === -1) {
+                    l -= 1;
+                    break;
+                  }
+                  var cells = parseMarkdownTableRow(rowTrimmed);
+                  var bodyTr = document.createElement('tr');
+                  bodyTr.className = 'border-b border-cipherLine/40 last:border-b-0 hover:bg-cipherPanel/35 transition';
+                  var colCount = Math.max(headers.length, cells.length);
+                  for (var c = 0; c < colCount; c++) {
+                    var td = document.createElement('td');
+                    td.className = 'px-3 py-2 text-cipherSubtext align-top';
+                    td.innerHTML = renderInlineMarkdown(cells[c] || '');
+                    bodyTr.appendChild(td);
+                  }
+                  tbody.appendChild(bodyTr);
+                  l += 1;
+                }
+                table.appendChild(tbody);
+                tableWrap.appendChild(table);
+                fragment.appendChild(tableWrap);
                 continue;
               }
 
@@ -2102,15 +2200,15 @@
             }, 20);
           } else if (isUser) {
             bubble.className =
-              'max-w-[88%] sm:max-w-[74%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-cipherPanel/90 border border-cipherLineStrong text-cipherText text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-hudSurface';
+              'max-w-[88%] sm:max-w-[74%] px-4 py-2.5 rounded-2xl rounded-tr-sm cipher-user-glass text-cipherText text-xs sm:text-sm leading-relaxed whitespace-pre-wrap';
             bubble.textContent = msg.text;
           } else if (msg.isError) {
             bubble.className =
-              'max-w-[92%] sm:max-w-[82%] px-4 py-3 rounded-2xl rounded-tl-sm bg-amber-950/75 border border-starkGold text-starkGold font-mono text-xs sm:text-sm';
+              'max-w-[92%] sm:max-w-[82%] px-4 py-3 rounded-2xl rounded-tl-sm cipher-error-glass text-starkGold font-mono text-xs sm:text-sm';
             bubble.textContent = msg.text;
           } else {
             bubble.className =
-              'max-w-[95%] sm:max-w-[84%] px-4 py-3 rounded-2xl rounded-tl-sm cipher-hud-box text-cipherSubtext shadow-hudSurface space-y-2';
+              'max-w-[95%] sm:max-w-[84%] px-4 py-3 rounded-2xl rounded-tl-sm cipher-hud-box text-cipherSubtext space-y-2';
             bubble.appendChild(buildRichMessageContent(msg.text));
           }
 
