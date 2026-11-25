@@ -1,0 +1,2778 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C.I.P.H.E.R. // Holographic HUD &amp; CMatrix AI</title>
+
+  <!-- Google Fonts: Orbitron, Rajdhani & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            hud: ['"Orbitron"', '"Rajdhani"', 'sans-serif'],
+            sans: ['"Rajdhani"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+          },
+          colors: {
+            cipherBlack: '#000000',
+            cipherVoid: '#010a12',
+            cipherPanel: '#031524',
+            cipherLine: 'rgba(0, 229, 255, 0.30)',
+            cipherLineStrong: 'rgba(0, 229, 255, 0.62)',
+            arcCyan: '#00E5FF',
+            iceBlue: '#38BDF8',
+            skyPulse: '#0EA5E9',
+            starkGold: '#FBBF24',
+            starkAmber: '#F59E0B',
+            cipherText: '#F0F9FF',
+            cipherSubtext: '#E0F2FE',
+            cipherMuted: '#7DD3FC'
+          },
+          boxShadow: {
+            cyanPulse: '0 0 22px rgba(0, 229, 255, 0.25)',
+            hudSurface: '0 10px 30px rgba(0, 0, 0, 0.85)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Three.js CDN for 3D CMatrix Depth Backdrop -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      color: #F0F9FF;
+      font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    code,
+    pre,
+    .font-mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .font-hud {
+      font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    }
+
+    /* Custom Holographic Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #000000;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 229, 255, 0.30);
+      border-radius: 9999px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 229, 255, 0.68);
+    }
+
+    /* Full-Viewport CMatrix 3D & 2D Canvas Layers */
+    #cipher-matrix-3d,
+    #cipher-matrix-2d {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: none;
+      display: block;
+    }
+
+    #cipher-matrix-2d {
+      display: none;
+    }
+
+    /* Subtle Holographic Coordinate Grid Overlay */
+    .cipher-grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background-image:
+        linear-gradient(to right, rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at 50% 48%, rgba(0, 0, 0, 0.92) 25%, rgba(0, 0, 0, 0.38) 100%);
+    }
+
+    .screen-hidden {
+      display: none !important;
+    }
+
+    /* Intro Vignette for Uncluttered Reticle Clarity */
+    .cipher-intro-vignette {
+      background: radial-gradient(
+        circle at 50% 46%,
+        rgba(0, 0, 0, 0.88) 0%,
+        rgba(1, 10, 18, 0.56) 54%,
+        rgba(0, 0, 0, 0.84) 100%
+      );
+    }
+
+    /* Symmetrical Holographic Reticle Core on Intro Screen */
+    .cipher-reticle-wrap {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.16s ease-out;
+    }
+
+    @media (min-width: 640px) {
+      .cipher-reticle-wrap {
+        width: 288px;
+        height: 288px;
+      }
+    }
+
+    .cipher-reticle-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .hud-spin-cw {
+      transform-origin: 160px 160px;
+      animation: hudSpinCW 26s linear infinite;
+    }
+
+    .hud-spin-ccw {
+      transform-origin: 160px 160px;
+      animation: hudSpinCCW 19s linear infinite;
+    }
+
+    .hud-spin-gold {
+      transform-origin: 160px 160px;
+      animation: hudSpinCW 36s linear infinite;
+    }
+
+    .cipher-reticle-wrap:hover .hud-spin-cw {
+      animation-duration: 13s;
+    }
+
+    .cipher-reticle-wrap:hover .hud-spin-ccw {
+      animation-duration: 9s;
+    }
+
+    .hud-core-breathe {
+      transform-origin: 160px 160px;
+      animation: hudCorePulse 3.2s ease-in-out infinite;
+    }
+
+    .hud-wave-sweep {
+      transform-origin: 160px 160px;
+      animation: hudWaveSweep 4.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+
+    .hud-wave-bar {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: hudWaveBar 1.7s ease-in-out infinite;
+    }
+
+    .hud-wave-bar:nth-child(2) {
+      animation-delay: 0.14s;
+    }
+
+    .hud-wave-bar:nth-child(3) {
+      animation-delay: 0.28s;
+    }
+
+    .hud-wave-bar:nth-child(4) {
+      animation-delay: 0.42s;
+    }
+
+    .hud-wave-bar:nth-child(5) {
+      animation-delay: 0.56s;
+    }
+
+    @keyframes hudSpinCW {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes hudSpinCCW {
+      from {
+        transform: rotate(360deg);
+      }
+      to {
+        transform: rotate(0deg);
+      }
+    }
+
+    @keyframes hudCorePulse {
+      0%, 100% {
+        transform: scale(0.96);
+        opacity: 0.82;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 1;
+      }
+    }
+
+    @keyframes hudWaveSweep {
+      0% {
+        transform: scale(0.56);
+        opacity: 0.65;
+      }
+      100% {
+        transform: scale(1.18);
+        opacity: 0;
+      }
+    }
+
+    @keyframes hudWaveBar {
+      0%, 100% {
+        transform: scaleY(0.45);
+        opacity: 0.55;
+      }
+      50% {
+        transform: scaleY(1.15);
+        opacity: 1;
+      }
+    }
+
+    /* Chamfered Holographic HUD Panels & Prompt Boxes */
+    .cipher-chamfer-panel {
+      clip-path: polygon(
+        14px 0%,
+        calc(100% - 14px) 0%,
+        100% 14px,
+        100% calc(100% - 14px),
+        calc(100% - 14px) 100%,
+        14px 100%,
+        0% calc(100% - 14px),
+        0% 14px
+      );
+    }
+
+    .cipher-hud-box {
+      position: relative;
+      background: rgba(2, 16, 28, 0.80);
+      border: 1px solid rgba(0, 229, 255, 0.30);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .cipher-starter-box {
+      position: relative;
+      background: rgba(3, 21, 36, 0.86);
+      border: 1px solid rgba(0, 229, 255, 0.28);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cipher-starter-box:hover {
+      border-color: #00E5FF;
+      background: rgba(3, 21, 36, 0.96);
+      transform: translateY(-2px);
+      box-shadow: 0 0 22px rgba(0, 229, 255, 0.18);
+    }
+
+    .cipher-starter-box::before,
+    .cipher-starter-box::after {
+      content: '';
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      pointer-events: none;
+    }
+
+    .cipher-starter-box::before {
+      top: -1px;
+      left: -1px;
+      border-top: 2px solid #00E5FF;
+      border-left: 2px solid #00E5FF;
+    }
+
+    .cipher-starter-box::after {
+      bottom: -1px;
+      right: -1px;
+      border-bottom: 2px solid #FBBF24;
+      border-right: 2px solid #FBBF24;
+    }
+
+    /* Syntax Token Highlighting inside Code Blocks */
+    .tok-kw {
+      color: #38BDF8;
+      font-weight: 600;
+    }
+
+    .tok-str {
+      color: #FBBF24;
+    }
+
+    .tok-num {
+      color: #00E5FF;
+    }
+
+    .tok-cmt {
+      color: #64748B;
+      font-style: italic;
+    }
+
+    /* Typing Indicator Dots */
+    .cipher-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 9999px;
+      background-color: #00E5FF;
+      display: inline-block;
+      animation: cipherDotBounce 1.2s infinite ease-in-out;
+    }
+
+    .cipher-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .cipher-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes cipherDotBounce {
+      0%, 80%, 100% {
+        transform: translateY(0);
+        opacity: 0.35;
+      }
+      40% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body class="bg-cipherBlack text-cipherText antialiased selection:bg-arcCyan/25 selection:text-cipherText">
+
+  <!-- Three.js 3D CMatrix Depth Canvas -->
+  <canvas id="cipher-matrix-3d" aria-hidden="true"></canvas>
+
+  <!-- 2D Canvas Fallback -->
+  <canvas id="cipher-matrix-2d" aria-hidden="true"></canvas>
+
+  <!-- Subtle Holographic HUD Coordinate Grid -->
+  <div class="cipher-grid-overlay" aria-hidden="true"></div>
+
+  <!-- =====================================================================
+       SCREEN 1: C.I.P.H.E.R. HOLOGRAPHIC INTRO PAGE (#intro-screen)
+       ===================================================================== -->
+  <section
+    id="intro-screen"
+    class="relative z-10 min-h-screen w-full flex flex-col justify-between px-4 sm:px-8 py-6 overflow-hidden"
+    aria-label="C.I.P.H.E.R. Holographic Intro"
+  >
+    <!-- Vignette for Clean Focal Clarity -->
+    <div class="cipher-intro-vignette fixed inset-0 z-[2] pointer-events-none"></div>
+
+    <!-- Top Minimal HUD Header -->
+    <header class="relative z-10 max-w-6xl w-full mx-auto flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cipherBlack border border-cipherLine shadow-cyanPulse">
+        <span class="w-2 h-2 rounded-full bg-arcCyan shadow-[0_0_8px_#00E5FF]"></span>
+        <span class="font-hud text-xs sm:text-sm font-semibold tracking-[0.18em] text-arcCyan">
+          C.I.P.H.E.R.
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cipherBlack border border-cipherLine font-mono text-[11px] text-cipherMuted tracking-wider">
+          <span class="w-1.5 h-1.5 rounded-full bg-starkGold"></span>
+          HUD TELEMETRY ONLINE
+        </span>
+        <button
+          id="intro-status-pill"
+          type="button"
+          class="px-3 py-1 rounded-full bg-cipherBlack hover:border-arcCyan border border-cipherLine font-mono text-[11px] text-iceBlue transition cursor-pointer"
+        >
+          DEMO MODE
+        </button>
+      </div>
+    </header>
+
+    <!-- Centerpiece Symmetrical Holographic Reticle + C.I.P.H.E.R. Title + CTA -->
+    <main class="relative z-10 max-w-3xl w-full mx-auto my-auto py-8 flex flex-col items-center text-center space-y-6">
+      <!-- Symmetrical Animated Holographic Reticle Core -->
+      <div id="cipher-reticle-wrap" class="cipher-reticle-wrap" aria-hidden="true">
+        <svg class="cipher-reticle-svg" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="cipherArcField" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.32" />
+              <stop offset="55%" stop-color="#0EA5E9" stop-opacity="0.1" />
+              <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+
+          <circle cx="160" cy="160" r="126" fill="url(#cipherArcField)" />
+
+          <circle
+            class="hud-wave-sweep"
+            cx="160"
+            cy="160"
+            r="68"
+            stroke="#00E5FF"
+            stroke-width="1.25"
+          />
+
+          <g class="hud-spin-cw">
+            <circle
+              cx="160"
+              cy="160"
+              r="142"
+              stroke="rgba(56, 189, 248, 0.26)"
+              stroke-width="1"
+              stroke-dasharray="3 7"
+            />
+            <path
+              d="M 160 18 A 142 142 0 0 1 258 58"
+              stroke="#00E5FF"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 302 160 A 142 142 0 0 1 262 258"
+              stroke="#38BDF8"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 160 302 A 142 142 0 0 1 62 262"
+              stroke="#00E5FF"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 18 160 A 142 142 0 0 1 58 62"
+              stroke="#38BDF8"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+            <circle cx="160" cy="18" r="3.5" fill="#00E5FF" />
+            <circle cx="160" cy="302" r="3.5" fill="#00E5FF" />
+            <circle cx="262" cy="258" r="3" fill="#38BDF8" />
+            <circle cx="58" cy="62" r="3" fill="#38BDF8" />
+          </g>
+
+          <g class="hud-spin-gold">
+            <circle
+              cx="160"
+              cy="160"
+              r="124"
+              stroke="rgba(251, 191, 36, 0.16)"
+              stroke-width="1"
+              stroke-dasharray="2 12"
+            />
+            <path
+              d="M 244 68 A 124 124 0 0 1 282 142"
+              stroke="#FBBF24"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 76 252 A 124 124 0 0 1 38 178"
+              stroke="#F59E0B"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </g>
+
+          <g class="hud-spin-ccw">
+            <circle
+              cx="160"
+              cy="160"
+              r="98"
+              stroke="rgba(0, 229, 255, 0.25)"
+              stroke-width="1"
+            />
+            <path
+              d="M 160 62 A 98 98 0 0 1 232 91"
+              stroke="#00E5FF"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 258 160 A 98 98 0 0 1 229 232"
+              stroke="#38BDF8"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 160 258 A 98 98 0 0 1 88 229"
+              stroke="#00E5FF"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M 62 160 A 98 98 0 0 1 91 88"
+              stroke="#38BDF8"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </g>
+
+          <g class="hud-core-breathe">
+            <circle
+              cx="160"
+              cy="160"
+              r="68"
+              stroke="rgba(0, 229, 255, 0.35)"
+              stroke-width="1"
+              stroke-dasharray="6 6"
+            />
+            <circle
+              cx="160"
+              cy="160"
+              r="46"
+              fill="#010a12"
+              fill-opacity="0.92"
+              stroke="#00E5FF"
+              stroke-width="1.75"
+            />
+            <circle
+              cx="160"
+              cy="160"
+              r="35"
+              stroke="#38BDF8"
+              stroke-opacity="0.45"
+              stroke-width="1"
+            />
+          </g>
+
+          <g transform="translate(136, 145)">
+            <rect class="hud-wave-bar" x="0" y="6" width="4" height="18" rx="2" fill="#38BDF8" />
+            <rect class="hud-wave-bar" x="11" y="1" width="4" height="28" rx="2" fill="#00E5FF" />
+            <rect class="hud-wave-bar" x="22" y="4" width="4" height="22" rx="2" fill="#FBBF24" />
+            <rect class="hud-wave-bar" x="33" y="1" width="4" height="28" rx="2" fill="#00E5FF" />
+            <rect class="hud-wave-bar" x="44" y="6" width="4" height="18" rx="2" fill="#38BDF8" />
+          </g>
+        </svg>
+      </div>
+
+      <!-- Title & Concise Subtitle -->
+      <div class="space-y-3 max-w-xl">
+        <h1 class="font-hud text-4xl sm:text-6xl font-bold tracking-[0.22em] text-cipherText">
+          C.I.P.H.E.R.
+        </h1>
+        <p class="text-sm sm:text-base text-cipherMuted leading-relaxed">
+          Holographic AI &amp; Systems Intelligence &mdash; precision HUD telemetry &amp; CMatrix depth.
+        </p>
+      </div>
+
+      <!-- Primary & Secondary Actions -->
+      <div class="pt-1 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
+        <button
+          id="initialize-chat-btn"
+          type="button"
+          class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-xs sm:text-sm tracking-[0.12em] shadow-cyanPulse transition cursor-pointer"
+        >
+          INITIALIZE CHAT &rarr;
+        </button>
+
+        <button
+          id="intro-configure-api-btn"
+          type="button"
+          class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-cipherBlack hover:border-arcCyan border border-cipherLine text-cipherSubtext font-mono text-xs tracking-wider transition cursor-pointer"
+        >
+          CONFIGURE API KEY
+        </button>
+      </div>
+    </main>
+
+    <!-- Bottom Minimal Telemetry Line -->
+    <footer class="relative z-10 max-w-6xl w-full mx-auto flex items-center justify-center text-center">
+      <p id="intro-telemetry-line" class="font-mono text-[11px] text-cipherMuted/85 tracking-wider">
+        TELEMETRY: STANDBY &middot; GEMINI-3.8-FLASH &amp; CHATGPT READY &middot; CMATRIX LAYER ACTIVE
+      </p>
+    </footer>
+  </section>
+
+  <!-- =====================================================================
+       SCREEN 2: C.I.P.H.E.R. HOLOGRAPHIC HUD CHAT INTERFACE (#chat-screen)
+       ===================================================================== -->
+  <div
+    id="chat-screen"
+    class="screen-hidden relative z-10 h-screen w-full flex overflow-hidden bg-transparent"
+  >
+    <!-- Mobile Sidebar Backdrop -->
+    <div
+      id="cipher-sidebar-backdrop"
+      class="fixed inset-0 z-30 bg-black/75 hidden md:hidden"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Left Collapsible Sidebar: Session Logs (Solid #000000) -->
+    <aside
+      id="chat-sidebar"
+      class="fixed md:static inset-y-0 left-0 z-40 w-72 shrink-0 h-full bg-cipherBlack border-r border-cipherLine flex flex-col transition-transform duration-200 -translate-x-full md:translate-x-0"
+      aria-label="Session Logs Sidebar"
+    >
+      <!-- Sidebar Top Header -->
+      <div class="p-3.5 border-b border-cipherLine bg-cipherBlack flex items-center justify-between gap-2 shrink-0">
+        <div>
+          <p class="font-hud text-xs font-semibold tracking-[0.16em] text-arcCyan">SESSION LOGS</p>
+          <p id="sidebar-session-count" class="font-mono text-[11px] text-cipherMuted">0 threads</p>
+        </div>
+        <button
+          id="close-sidebar-mobile-btn"
+          type="button"
+          class="md:hidden px-2.5 py-1.5 rounded-lg bg-cipherBlack border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+        >
+          ESC
+        </button>
+      </div>
+
+      <!-- New Chat + Search Filter -->
+      <div class="p-3 space-y-2.5 border-b border-cipherLine bg-cipherBlack shrink-0">
+        <button
+          id="new-session-btn"
+          type="button"
+          class="w-full py-2.5 px-3.5 rounded-xl bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-xs tracking-wider transition cursor-pointer"
+        >
+          + NEW CHAT
+        </button>
+
+        <input
+          id="session-filter-input"
+          type="text"
+          placeholder="Search sessions..."
+          class="w-full px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText placeholder:text-cipherMuted/50"
+        />
+      </div>
+
+      <!-- Session List -->
+      <div
+        id="session-list"
+        class="flex-1 overflow-y-auto p-2.5 space-y-1.5 bg-cipherBlack"
+        role="list"
+        aria-label="Saved sessions"
+      ></div>
+
+      <!-- Two-Step Purge History Footer -->
+      <div class="p-3 border-t border-cipherLine bg-cipherBlack shrink-0">
+        <button
+          id="purge-history-btn"
+          type="button"
+          class="w-full py-2 px-3 rounded-lg bg-cipherBlack border border-cipherLine hover:border-starkGold hover:text-starkGold font-mono text-xs tracking-wider text-cipherMuted transition cursor-pointer"
+        >
+          PURGE HISTORY
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Main HUD Chat Column -->
+    <div class="flex-1 min-w-0 h-full flex flex-col bg-transparent">
+      <!-- Top Navigation Bar (Solid #000000 with Holographic Cyan Border) -->
+      <header class="bg-cipherBlack border-b border-cipherLine px-2.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <button
+            id="back-to-intro-btn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+          >
+            &larr; INTRO
+          </button>
+
+          <button
+            id="toggle-sidebar-btn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+          >
+            CHATS
+          </button>
+
+          <!-- C.I.P.H.E.R. // HUD Badge -->
+          <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cipherBlack border border-cipherLine font-hud text-xs font-semibold tracking-[0.16em] text-arcCyan shadow-cyanPulse">
+            <span class="w-2 h-2 rounded-full bg-arcCyan shadow-[0_0_8px_#00E5FF]"></span>
+            C.I.P.H.E.R. // HUD
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <select
+            id="model-select"
+            aria-label="Select AI model"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherSubtext cursor-pointer"
+          ></select>
+
+          <button
+            id="api-key-btn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-arcCyan transition cursor-pointer"
+          >
+            API KEY
+          </button>
+
+          <button
+            id="hud-motion-btn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            title="Cycle HUD & CMatrix animation mode"
+          >
+            HUD: FLOW
+          </button>
+        </div>
+      </header>
+
+      <!-- Active Session Telemetry Sub-Bar (Solid #000000) -->
+      <div class="px-3 sm:px-6 py-2 bg-cipherBlack border-b border-cipherLine/75 flex items-center justify-between gap-2 text-[11px] font-mono shrink-0 flex-wrap">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-starkGold shrink-0">[NODE]</span>
+          <span id="thread-title-display" class="text-cipherText font-medium truncate">New Session</span>
+          <span id="thread-msg-count" class="text-cipherMuted/75 shrink-0">(0 msgs)</span>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+          <button
+            id="provider-pill-btn"
+            type="button"
+            class="px-2 py-0.5 rounded border border-cipherLine hover:border-arcCyan text-arcCyan text-[10px] tracking-wider transition cursor-pointer"
+            title="Open API provider settings"
+          >
+            GOOGLE GEMINI
+          </button>
+          <button
+            id="vibe-toggle-btn"
+            type="button"
+            class="px-2 py-0.5 rounded border border-cipherLine hover:border-starkGold text-starkGold text-[10px] tracking-wider transition cursor-pointer"
+            title="Switch response profile"
+          >
+            GEN-Z TECH
+          </button>
+          <span id="hud-mode-indicator" class="text-arcCyan">DEMO MODE</span>
+        </div>
+      </div>
+
+      <!-- Scrollable Conversation Stage -->
+      <main
+        id="chat-stream"
+        class="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 bg-black/20"
+        aria-live="polite"
+      ></main>
+
+      <!-- Bottom Prompt Dock (Solid #000000) -->
+      <footer class="bg-cipherBlack border-t border-cipherLine px-3 sm:px-6 py-3 shrink-0">
+        <form id="chat-form" class="max-w-4xl mx-auto flex items-end gap-2.5">
+          <div class="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-cipherVoid border border-cipherLine focus-within:border-arcCyan transition">
+            <span class="font-mono text-sm text-arcCyan select-none">[&gt;]</span>
+            <textarea
+              id="prompt-textarea"
+              rows="1"
+              placeholder="Issue directive to C.I.P.H.E.R.... (Enter to send, Shift+Enter for new line)"
+              class="w-full bg-transparent text-cipherText placeholder:text-cipherMuted/45 font-mono text-xs sm:text-sm leading-relaxed resize-none focus:outline-none max-h-36"
+            ></textarea>
+          </div>
+
+          <button
+            id="transmit-btn"
+            type="submit"
+            class="px-4 sm:px-5 py-3 rounded-xl bg-arcCyan hover:bg-iceBlue disabled:opacity-50 text-cipherBlack font-hud font-bold text-xs tracking-wider transition cursor-pointer shrink-0"
+          >
+            SEND
+          </button>
+        </form>
+      </footer>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       API KEY, MODEL & PROFILE CONFIGURATION MODAL (Solid #000000 Chrome)
+       ===================================================================== -->
+  <div
+    id="api-config-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center px-4 bg-black/85"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="api-modal-heading"
+  >
+    <div class="w-full max-w-md rounded-2xl bg-cipherBlack border border-cipherLineStrong p-5 sm:p-6 shadow-hudSurface space-y-4">
+      <div class="flex items-center justify-between gap-2">
+        <h2 id="api-modal-heading" class="font-hud text-sm font-bold tracking-[0.14em] text-arcCyan">
+          C.I.P.H.E.R. // API UPLINK
+        </h2>
+        <button
+          id="close-modal-btn"
+          type="button"
+          class="px-2.5 py-1 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+        >
+          CLOSE
+        </button>
+      </div>
+
+      <p class="text-xs text-cipherMuted leading-relaxed">
+        Select <span class="font-mono text-arcCyan">GOOGLE GEMINI</span> or <span class="font-mono text-arcCyan">OPENAI CHATGPT</span>, store either or both API keys locally, or run in Demo Sandbox mode.
+      </p>
+
+      <div class="space-y-1.5">
+        <label class="block font-mono text-xs text-cipherSubtext">
+          ACTIVE PROVIDER
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            id="provider-gemini-btn"
+            type="button"
+            class="py-2 px-3 rounded-lg bg-cipherVoid border border-arcCyan text-arcCyan font-mono text-xs font-semibold transition cursor-pointer"
+          >
+            GOOGLE GEMINI
+          </button>
+          <button
+            id="provider-openai-btn"
+            type="button"
+            class="py-2 px-3 rounded-lg bg-cipherVoid border border-cipherLine text-cipherSubtext font-mono text-xs font-semibold transition cursor-pointer"
+          >
+            OPENAI CHATGPT
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="modal-gemini-key-input" class="block font-mono text-xs text-cipherSubtext">
+          GOOGLE GEMINI API KEY
+        </label>
+        <div class="flex items-center gap-2">
+          <input
+            id="modal-gemini-key-input"
+            type="password"
+            placeholder="AIzaSy... or AQ..."
+            class="flex-1 px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText"
+          />
+          <button
+            id="modal-toggle-gemini-vis-btn"
+            type="button"
+            class="px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+          >
+            SHOW
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="modal-openai-key-input" class="block font-mono text-xs text-cipherSubtext">
+          OPENAI CHATGPT API KEY
+        </label>
+        <div class="flex items-center gap-2">
+          <input
+            id="modal-openai-key-input"
+            type="password"
+            placeholder="sk-..."
+            class="flex-1 px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText"
+          />
+          <button
+            id="modal-toggle-openai-vis-btn"
+            type="button"
+            class="px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+          >
+            SHOW
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="space-y-1">
+          <label for="modal-model-select" class="block font-mono text-[11px] text-cipherMuted">
+            MODEL
+          </label>
+          <select
+            id="modal-model-select"
+            class="w-full px-2.5 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText cursor-pointer"
+          ></select>
+        </div>
+
+        <div class="space-y-1">
+          <label for="modal-vibe-select" class="block font-mono text-[11px] text-cipherMuted">
+            RESPONSE PROFILE
+          </label>
+          <select
+            id="modal-vibe-select"
+            class="w-full px-2.5 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText cursor-pointer"
+          >
+            <option value="GEN-Z TECH">GEN-Z TECH</option>
+            <option value="TACTICAL HUD">TACTICAL HUD</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
+        <input
+          id="modal-demo-checkbox"
+          type="checkbox"
+          class="w-4 h-4 accent-cyan-400 rounded cursor-pointer"
+        />
+        <span class="font-mono text-xs text-cipherSubtext">Enable Demo Sandbox Mode</span>
+      </label>
+
+      <div class="pt-2 flex items-center justify-end gap-2">
+        <button
+          id="modal-clear-key-btn"
+          type="button"
+          class="px-3.5 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-starkGold text-cipherMuted hover:text-starkGold font-mono text-xs cursor-pointer"
+        >
+          CLEAR ACTIVE KEY
+        </button>
+        <button
+          id="modal-save-btn"
+          type="button"
+          class="px-4 py-2 rounded-lg bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-xs tracking-wider cursor-pointer"
+        >
+          SAVE CONFIG
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Banner -->
+  <div
+    id="cipher-toast"
+    class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full bg-cipherPanel border border-arcCyan text-cipherText font-mono text-xs shadow-cyanPulse"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+  <!-- =====================================================================
+       APPLICATION LOGIC (STATE, PERSISTENCE, GEMINI/OPENAI UPLINK & 3D HUD)
+       ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      var DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+      var DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+
+      var STORAGE_KEYS = {
+        OPENAI_KEY: 'cipher_openai_api_key',
+        GEMINI_KEY: 'cipher_gemini_api_key',
+        ACTIVE_PROVIDER: 'cipher_active_provider',
+        LEGACY_GEMINI_KEY: 'cipher_hud_api_key',
+        DEMO_MODE: 'cipher_hud_demo',
+        OPENAI_MODEL: 'cipher_openai_model',
+        GEMINI_MODEL: 'cipher_gemini_model',
+        LEGACY_MODEL: 'cipher_hud_model',
+        VIBE: 'cipher_hud_vibe',
+        SESSIONS: 'cipher_hud_sessions'
+      };
+
+      var PROVIDER_MODELS = {
+        gemini: ['gemini-3.8-flash', 'gemini-2.5-flash'],
+        openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini']
+      };
+
+      var PROVIDER_LABELS = {
+        gemini: 'GOOGLE GEMINI',
+        openai: 'OPENAI CHATGPT'
+      };
+
+      var HUD_MODES = ['FLOW', 'PULSE', 'STILL'];
+      var MATRIX_CHARS = '0123456789ABCDEFHKNUSV<>/*+-=#$%&';
+
+      var STARTER_CARDS = [
+        {
+          code: 'MOD-01 // AI STACK',
+          prompt: 'Break down how RAG + vector embeddings + reranking work together in a modern AI app'
+        },
+        {
+          code: 'MOD-02 // GEMINI & CHATGPT API',
+          prompt: 'Write a clean JavaScript helper for Gemini 3.8 Flash and OpenAI chat completions with error handling'
+        },
+        {
+          code: 'MOD-03 // SYSTEMS HUD',
+          prompt: 'Design a low-latency WebSocket event bus with exponential backoff and message deduping'
+        },
+        {
+          code: 'MOD-04 // GEN-Z UI CRAFT',
+          prompt: 'Build a sleek keyboard-driven command bar component with Tailwind CSS and vanilla JS'
+        }
+      ];
+
+      var SYSTEM_PROMPTS = {
+        'GEN-Z TECH':
+          'You are C.I.P.H.E.R., a holographic HUD AI assistant with a sharp Gen-Z tech enthusiast edge and CMatrix terminal precision. ' +
+          'Give crisp, high-signal, accurate answers with clear structure, practical insights, and clean code blocks when helpful.',
+        'TACTICAL HUD':
+          'You are C.I.P.H.E.R., a precision holographic HUD intelligence assistant. ' +
+          'Deliver concise, structured technical briefings, clear architectural trade-offs, step-by-step execution plans, and production-ready code.'
+      };
+
+      var state = {
+        screen: 'intro',
+        provider: 'gemini',
+        openaiKey: '',
+        geminiKey: '',
+        demoMode: true,
+        openaiModel: DEFAULT_OPENAI_MODEL,
+        geminiModel: DEFAULT_GEMINI_MODEL,
+        vibe: 'GEN-Z TECH',
+        hudModeIndex: 0,
+        filterQuery: '',
+        sessions: [],
+        activeSessionId: null,
+        isGenerating: false,
+        purgeArmed: false
+      };
+
+      var modalDraftProvider = 'gemini';
+      var dom = {};
+      var toastTimer = null;
+      var purgeArmTimer = null;
+      var setSceneScreenFn = null;
+      var resizeSceneFn = null;
+
+      function normalizeGeminiModel(modelValue) {
+        var clean = String(modelValue || '').trim();
+        if (!clean || clean === 'gemini-2.5-flash' || clean === 'models/gemini-2.5-flash') {
+          return DEFAULT_GEMINI_MODEL;
+        }
+        return clean;
+      }
+
+      function getActiveApiKeyForProvider(providerName) {
+        if (providerName === 'openai') return state.openaiKey;
+        return state.geminiKey;
+      }
+
+      function getActiveModelForProvider(providerName) {
+        if (providerName === 'openai') {
+          return state.openaiModel || DEFAULT_OPENAI_MODEL;
+        }
+        return normalizeGeminiModel(state.geminiModel);
+      }
+
+      function setActiveModelForProvider(providerName, modelValue) {
+        if (providerName === 'openai') {
+          state.openaiModel = String(modelValue || '').trim() || DEFAULT_OPENAI_MODEL;
+        } else {
+          state.geminiModel = normalizeGeminiModel(modelValue);
+        }
+      }
+
+      function populateModelSelect(selectEl, providerName, selectedModel) {
+        if (!selectEl) return;
+        var baseList = PROVIDER_MODELS[providerName] || PROVIDER_MODELS.gemini;
+        var list = baseList.slice();
+        var effectiveSelected =
+          providerName === 'gemini' ? normalizeGeminiModel(selectedModel) : String(selectedModel || '').trim();
+
+        if (effectiveSelected && list.indexOf(effectiveSelected) === -1) {
+          list.unshift(effectiveSelected);
+        }
+
+        selectEl.innerHTML = '';
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i];
+          opt.textContent = list[i];
+          selectEl.appendChild(opt);
+        }
+        selectEl.value = effectiveSelected && list.indexOf(effectiveSelected) !== -1 ? effectiveSelected : list[0];
+      }
+
+      function cacheElements() {
+        dom.introScreen = document.getElementById('intro-screen');
+        dom.cipherReticleWrap = document.getElementById('cipher-reticle-wrap');
+        dom.introStatusPill = document.getElementById('intro-status-pill');
+        dom.introTelemetryLine = document.getElementById('intro-telemetry-line');
+        dom.initializeChatBtn = document.getElementById('initialize-chat-btn');
+        dom.introConfigureApiBtn = document.getElementById('intro-configure-api-btn');
+
+        dom.chatScreen = document.getElementById('chat-screen');
+        dom.chatSidebar = document.getElementById('chat-sidebar');
+        dom.cipherSidebarBackdrop = document.getElementById('cipher-sidebar-backdrop');
+        dom.toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+        dom.closeSidebarMobileBtn = document.getElementById('close-sidebar-mobile-btn');
+        dom.backToIntroBtn = document.getElementById('back-to-intro-btn');
+
+        dom.newSessionBtn = document.getElementById('new-session-btn');
+        dom.sessionFilterInput = document.getElementById('session-filter-input');
+        dom.sessionList = document.getElementById('session-list');
+        dom.sidebarSessionCount = document.getElementById('sidebar-session-count');
+        dom.purgeHistoryBtn = document.getElementById('purge-history-btn');
+
+        dom.modelSelect = document.getElementById('model-select');
+        dom.apiKeyBtn = document.getElementById('api-key-btn');
+        dom.hudMotionBtn = document.getElementById('hud-motion-btn');
+        dom.threadTitleDisplay = document.getElementById('thread-title-display');
+        dom.threadMsgCount = document.getElementById('thread-msg-count');
+        dom.providerPillBtn = document.getElementById('provider-pill-btn');
+        dom.vibeToggleBtn = document.getElementById('vibe-toggle-btn');
+        dom.hudModeIndicator = document.getElementById('hud-mode-indicator');
+
+        dom.chatStream = document.getElementById('chat-stream');
+        dom.chatForm = document.getElementById('chat-form');
+        dom.promptTextarea = document.getElementById('prompt-textarea');
+        dom.transmitBtn = document.getElementById('transmit-btn');
+
+        dom.apiConfigModal = document.getElementById('api-config-modal');
+        dom.closeModalBtn = document.getElementById('close-modal-btn');
+        dom.providerGeminiBtn = document.getElementById('provider-gemini-btn');
+        dom.providerOpenaiBtn = document.getElementById('provider-openai-btn');
+        dom.modalGeminiKeyInput = document.getElementById('modal-gemini-key-input');
+        dom.modalToggleGeminiVisBtn = document.getElementById('modal-toggle-gemini-vis-btn');
+        dom.modalOpenaiKeyInput = document.getElementById('modal-openai-key-input');
+        dom.modalToggleOpenaiVisBtn = document.getElementById('modal-toggle-openai-vis-btn');
+        dom.modalModelSelect = document.getElementById('modal-model-select');
+        dom.modalVibeSelect = document.getElementById('modal-vibe-select');
+        dom.modalDemoCheckbox = document.getElementById('modal-demo-checkbox');
+        dom.modalClearKeyBtn = document.getElementById('modal-clear-key-btn');
+        dom.modalSaveBtn = document.getElementById('modal-save-btn');
+
+        dom.cipherToast = document.getElementById('cipher-toast');
+        dom.canvas3d = document.getElementById('cipher-matrix-3d');
+        dom.canvas2d = document.getElementById('cipher-matrix-2d');
+      }
+
+      function triggerToast(message) {
+        if (!dom.cipherToast) return;
+        dom.cipherToast.textContent = message;
+        dom.cipherToast.classList.remove('hidden');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+          dom.cipherToast.classList.add('hidden');
+        }, 2500);
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatAge(timestamp) {
+        var sec = Math.max(0, Math.floor((Date.now() - (timestamp || Date.now())) / 1000));
+        if (sec < 60) return 'just now';
+        var min = Math.floor(sec / 60);
+        if (min < 60) return min + 'm ago';
+        var hr = Math.floor(min / 60);
+        if (hr < 24) return hr + 'h ago';
+        var day = Math.floor(hr / 24);
+        return day + 'd ago';
+      }
+
+      function buildInitialSessions() {
+        var now = Date.now();
+        return [
+          {
+            id: 'cipher_sess_' + (now - 1500000),
+            title: 'RAG & vector retrieval pipeline',
+            updatedAt: now - 1500000,
+            messages: [
+              {
+                id: 'msg_init_1',
+                role: 'user',
+                text: 'Break down how RAG + vector embeddings + reranking work together in a modern AI app',
+                timestamp: now - 1500000
+              },
+              {
+                id: 'msg_init_2',
+                role: 'model',
+                text:
+                  'Directive logged. Here is a crisp **RAG + Vector Retrieval** breakdown for low-hallucination AI apps:\n\n' +
+                  '- **Chunk & Embed:** Split source documents into tight semantic chunks and embed them into vector space.\n' +
+                  '- **Vector Recall:** Query nearest neighbors (`topK: 8`) using cosine similarity.\n' +
+                  '- **Rerank & Synthesize:** Rank top candidates by relevance and feed grounded context into **C.I.P.H.E.R.**\n\n' +
+                  '```javascript\nconst matches = await vectorIndex.query({ vector: queryEmbedding, topK: 8 });\nconst contextBlock = matches.slice(0, 4).map(m => m.text).join("\\n---\\n");\n```',
+                model: DEFAULT_GEMINI_MODEL,
+                timestamp: now - 1490000
+              }
+            ]
+          },
+          {
+            id: 'cipher_sess_' + (now - 420000),
+            title: 'New Session',
+            updatedAt: now - 420000,
+            messages: []
+          }
+        ];
+      }
+
+      function loadState() {
+        try {
+          var savedOpenaiKey = localStorage.getItem(STORAGE_KEYS.OPENAI_KEY);
+          var savedGeminiKey =
+            localStorage.getItem(STORAGE_KEYS.GEMINI_KEY) || localStorage.getItem(STORAGE_KEYS.LEGACY_GEMINI_KEY);
+          var savedProvider = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER);
+          var savedDemo = localStorage.getItem(STORAGE_KEYS.DEMO_MODE);
+          var savedOpenaiModel = localStorage.getItem(STORAGE_KEYS.OPENAI_MODEL);
+          var savedGeminiModel =
+            localStorage.getItem(STORAGE_KEYS.GEMINI_MODEL) || localStorage.getItem(STORAGE_KEYS.LEGACY_MODEL);
+          var savedVibe = localStorage.getItem(STORAGE_KEYS.VIBE);
+          var savedSessionsRaw = localStorage.getItem(STORAGE_KEYS.SESSIONS);
+
+          state.openaiKey = savedOpenaiKey ? savedOpenaiKey.trim() : '';
+          state.geminiKey = savedGeminiKey ? savedGeminiKey.trim() : '';
+
+          if (savedProvider === 'openai' || savedProvider === 'gemini') {
+            state.provider = savedProvider;
+          } else if (state.geminiKey) {
+            state.provider = 'gemini';
+          } else if (state.openaiKey) {
+            state.provider = 'openai';
+          } else {
+            state.provider = 'gemini';
+          }
+
+          state.geminiModel = normalizeGeminiModel(savedGeminiModel);
+          if (savedOpenaiModel && String(savedOpenaiModel).trim()) {
+            state.openaiModel = String(savedOpenaiModel).trim();
+          } else {
+            state.openaiModel = DEFAULT_OPENAI_MODEL;
+          }
+
+          var activeKey = getActiveApiKeyForProvider(state.provider);
+          if (savedDemo === null) {
+            state.demoMode = !activeKey;
+          } else {
+            state.demoMode = savedDemo === 'true';
+          }
+          if (!state.demoMode && !activeKey) {
+            state.demoMode = true;
+          }
+
+          if (savedVibe === 'GEN-Z TECH' || savedVibe === 'TACTICAL HUD') {
+            state.vibe = savedVibe;
+          }
+
+          if (savedSessionsRaw) {
+            var parsed = JSON.parse(savedSessionsRaw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              for (var s = 0; s < parsed.length; s++) {
+                var msgs = Array.isArray(parsed[s].messages) ? parsed[s].messages : [];
+                for (var m = 0; m < msgs.length; m++) {
+                  if (
+                    msgs[m] &&
+                    (msgs[m].model === 'gemini-2.5-flash' || msgs[m].model === 'models/gemini-2.5-flash')
+                  ) {
+                    msgs[m].model = DEFAULT_GEMINI_MODEL;
+                  }
+                }
+              }
+              state.sessions = parsed;
+            } else {
+              state.sessions = buildInitialSessions();
+            }
+          } else {
+            state.sessions = buildInitialSessions();
+            saveSessions();
+          }
+
+          if (!state.activeSessionId || !findSessionById(state.activeSessionId)) {
+            state.activeSessionId = state.sessions[state.sessions.length - 1].id;
+          }
+
+          saveConfig();
+        } catch (err) {
+          state.sessions = buildInitialSessions();
+          state.activeSessionId = state.sessions[state.sessions.length - 1].id;
+          state.geminiModel = DEFAULT_GEMINI_MODEL;
+          state.demoMode = true;
+        }
+      }
+
+      function saveSessions() {
+        try {
+          localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(state.sessions));
+        } catch (err) {
+          triggerToast('Storage quota reached; unable to persist session.');
+        }
+      }
+
+      function saveConfig() {
+        try {
+          localStorage.setItem(STORAGE_KEYS.OPENAI_KEY, state.openaiKey);
+          localStorage.setItem(STORAGE_KEYS.GEMINI_KEY, state.geminiKey);
+          localStorage.setItem(STORAGE_KEYS.LEGACY_GEMINI_KEY, state.geminiKey);
+          localStorage.setItem(STORAGE_KEYS.ACTIVE_PROVIDER, state.provider);
+          localStorage.setItem(STORAGE_KEYS.DEMO_MODE, String(state.demoMode));
+          localStorage.setItem(STORAGE_KEYS.OPENAI_MODEL, state.openaiModel);
+          localStorage.setItem(STORAGE_KEYS.GEMINI_MODEL, normalizeGeminiModel(state.geminiModel));
+          localStorage.setItem(STORAGE_KEYS.LEGACY_MODEL, normalizeGeminiModel(state.geminiModel));
+          localStorage.setItem(STORAGE_KEYS.VIBE, state.vibe);
+        } catch (err) {
+          // Ignore storage error
+        }
+      }
+
+      function findSessionById(id) {
+        for (var i = 0; i < state.sessions.length; i++) {
+          if (state.sessions[i].id === id) return state.sessions[i];
+        }
+        return null;
+      }
+
+      function getActiveSession() {
+        var found = findSessionById(state.activeSessionId);
+        if (found) return found;
+        if (state.sessions.length > 0) {
+          state.activeSessionId = state.sessions[0].id;
+          return state.sessions[0];
+        }
+        return createSession(true);
+      }
+
+      function createSession(skipRender) {
+        var fresh = {
+          id: 'cipher_sess_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+          title: 'New Session',
+          updatedAt: Date.now(),
+          messages: []
+        };
+        state.sessions.unshift(fresh);
+        state.activeSessionId = fresh.id;
+        saveSessions();
+        if (!skipRender) {
+          renderSessionList();
+          renderChatStream();
+          syncTelemetryBar();
+        }
+        return fresh;
+      }
+
+      function renameSessionById(sessionId, nextTitle) {
+        var sess = findSessionById(sessionId);
+        if (!sess) return;
+        var clean = String(nextTitle || '').trim();
+        sess.title = clean || 'New Session';
+        sess.updatedAt = Date.now();
+        saveSessions();
+        renderSessionList();
+        syncTelemetryBar();
+        triggerToast('Session renamed');
+      }
+
+      function deleteSessionById(sessionId) {
+        var index = -1;
+        for (var i = 0; i < state.sessions.length; i++) {
+          if (state.sessions[i].id === sessionId) {
+            index = i;
+            break;
+          }
+        }
+        if (index === -1) return;
+
+        state.sessions.splice(index, 1);
+        if (state.sessions.length === 0) {
+          createSession(true);
+        } else if (state.activeSessionId === sessionId) {
+          state.activeSessionId = state.sessions[0].id;
+        }
+        saveSessions();
+        renderSessionList();
+        renderChatStream();
+        syncTelemetryBar();
+        triggerToast('Session deleted');
+      }
+
+      function disarmPurgeButton() {
+        state.purgeArmed = false;
+        if (purgeArmTimer) {
+          clearTimeout(purgeArmTimer);
+          purgeArmTimer = null;
+        }
+        if (dom.purgeHistoryBtn) {
+          dom.purgeHistoryBtn.textContent = 'PURGE HISTORY';
+          dom.purgeHistoryBtn.classList.remove('border-starkGold', 'text-starkGold');
+        }
+      }
+
+      function handlePurgeHistory() {
+        if (!state.purgeArmed) {
+          state.purgeArmed = true;
+          if (dom.purgeHistoryBtn) {
+            dom.purgeHistoryBtn.textContent = 'CONFIRM PURGE?';
+            dom.purgeHistoryBtn.classList.add('border-starkGold', 'text-starkGold');
+          }
+          purgeArmTimer = setTimeout(function () {
+            disarmPurgeButton();
+          }, 4000);
+          return;
+        }
+
+        disarmPurgeButton();
+        state.sessions = [];
+        createSession(true);
+        saveSessions();
+        renderSessionList();
+        renderChatStream();
+        syncTelemetryBar();
+        triggerToast('Session history purged');
+      }
+
+      function openSidebarDrawer() {
+        if (dom.chatSidebar) dom.chatSidebar.classList.remove('-translate-x-full');
+        if (dom.cipherSidebarBackdrop) dom.cipherSidebarBackdrop.classList.remove('hidden');
+      }
+
+      function closeSidebarDrawer() {
+        if (dom.chatSidebar) dom.chatSidebar.classList.add('-translate-x-full');
+        if (dom.cipherSidebarBackdrop) dom.cipherSidebarBackdrop.classList.add('hidden');
+      }
+
+      function navigateToIntro() {
+        state.screen = 'intro';
+        closeSidebarDrawer();
+        if (dom.chatScreen) dom.chatScreen.classList.add('screen-hidden');
+        if (dom.introScreen) dom.introScreen.classList.remove('screen-hidden');
+        if (typeof setSceneScreenFn === 'function') setSceneScreenFn('intro');
+        if (typeof resizeSceneFn === 'function') resizeSceneFn();
+        syncHudStatus();
+      }
+
+      function navigateToChat() {
+        state.screen = 'chat';
+        if (dom.introScreen) dom.introScreen.classList.add('screen-hidden');
+        if (dom.chatScreen) dom.chatScreen.classList.remove('screen-hidden');
+        if (typeof setSceneScreenFn === 'function') setSceneScreenFn('chat');
+        if (typeof resizeSceneFn === 'function') {
+          resizeSceneFn();
+          setTimeout(resizeSceneFn, 60);
+        }
+        renderSessionList();
+        renderChatStream();
+        syncTelemetryBar();
+        syncHudStatus();
+        setTimeout(function () {
+          if (dom.promptTextarea) dom.promptTextarea.focus();
+        }, 60);
+      }
+
+      function syncHudStatus() {
+        var activeModel = getActiveModelForProvider(state.provider);
+        var activeKey = getActiveApiKeyForProvider(state.provider);
+        var isLive = !state.demoMode && Boolean(activeKey);
+        var modeText = isLive ? 'LIVE // ' + activeModel : 'DEMO MODE';
+
+        if (dom.hudModeIndicator) dom.hudModeIndicator.textContent = modeText;
+        if (dom.apiKeyBtn) {
+          dom.apiKeyBtn.textContent = isLive ? 'API KEY (LIVE)' : 'API KEY';
+        }
+        if (dom.providerPillBtn) {
+          dom.providerPillBtn.textContent = PROVIDER_LABELS[state.provider] || 'GOOGLE GEMINI';
+        }
+        if (dom.introStatusPill) {
+          dom.introStatusPill.textContent = isLive
+            ? (state.provider === 'openai' ? 'CHATGPT LIVE' : 'GEMINI LIVE')
+            : 'DEMO MODE';
+        }
+        if (dom.introTelemetryLine) {
+          var providerTitle = PROVIDER_LABELS[state.provider] || 'GOOGLE GEMINI';
+          dom.introTelemetryLine.textContent = isLive
+            ? 'TELEMETRY: ONLINE · ' + providerTitle + ' · ' + activeModel + ' · ' + state.vibe
+            : 'TELEMETRY: DEMO SANDBOX READY · ' + providerTitle + ' · ' + activeModel + ' · ' + state.vibe;
+        }
+
+        populateModelSelect(dom.modelSelect, state.provider, activeModel);
+
+        if (dom.vibeToggleBtn) {
+          dom.vibeToggleBtn.textContent = state.vibe;
+        }
+        if (dom.hudMotionBtn) {
+          dom.hudMotionBtn.textContent = 'HUD: ' + HUD_MODES[state.hudModeIndex];
+        }
+      }
+
+      function syncTelemetryBar() {
+        var active = getActiveSession();
+        var count = active && Array.isArray(active.messages) ? active.messages.length : 0;
+        if (dom.threadTitleDisplay) {
+          dom.threadTitleDisplay.textContent = active ? active.title : 'New Session';
+        }
+        if (dom.threadMsgCount) {
+          dom.threadMsgCount.textContent = '(' + count + (count === 1 ? ' msg)' : ' msgs)');
+        }
+        if (dom.sidebarSessionCount) {
+          var total = state.sessions.length;
+          dom.sidebarSessionCount.textContent = total + (total === 1 ? ' thread' : ' threads');
+        }
+      }
+
+      function renderSessionList() {
+        if (!dom.sessionList) return;
+        dom.sessionList.innerHTML = '';
+
+        var q = state.filterQuery.trim().toLowerCase();
+        var items = state.sessions.filter(function (sess) {
+          if (!q) return true;
+          if (String(sess.title || '').toLowerCase().indexOf(q) !== -1) return true;
+          var msgs = Array.isArray(sess.messages) ? sess.messages : [];
+          for (var i = 0; i < msgs.length; i++) {
+            if (String(msgs[i].text || '').toLowerCase().indexOf(q) !== -1) {
+              return true;
+            }
+          }
+          return false;
+        });
+
+        if (items.length === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'px-3 py-6 text-center font-mono text-xs text-cipherMuted/60';
+          empty.textContent = q ? 'No matching sessions' : 'No saved sessions';
+          dom.sessionList.appendChild(empty);
+          syncTelemetryBar();
+          return;
+        }
+
+        items.forEach(function (sess) {
+          var active = sess.id === state.activeSessionId;
+          var row = document.createElement('div');
+          row.setAttribute('role', 'listitem');
+          row.className =
+            'flex items-center justify-between gap-1.5 px-3 py-2.5 rounded-xl border transition cursor-pointer ' +
+            (active
+              ? 'bg-cipherPanel border-arcCyan text-cipherText'
+              : 'bg-cipherVoid/85 border-cipherLine/60 hover:border-cipherLineStrong text-cipherSubtext');
+
+          var clickBox = document.createElement('div');
+          clickBox.className = 'flex-1 min-w-0';
+
+          var titleNode = document.createElement('div');
+          titleNode.className = 'font-mono text-xs font-medium truncate';
+          titleNode.textContent = sess.title || 'New Session';
+
+          var metaNode = document.createElement('div');
+          metaNode.className = 'font-mono text-[10px] text-cipherMuted/70 mt-0.5 truncate';
+          var mCount = Array.isArray(sess.messages) ? sess.messages.length : 0;
+          metaNode.textContent = formatAge(sess.updatedAt) + ' · ' + mCount + ' msgs';
+
+          clickBox.appendChild(titleNode);
+          clickBox.appendChild(metaNode);
+
+          clickBox.addEventListener('click', function () {
+            if (state.isGenerating) return;
+            state.activeSessionId = sess.id;
+            closeSidebarDrawer();
+            renderSessionList();
+            renderChatStream();
+            syncTelemetryBar();
+          });
+
+          var btnGroup = document.createElement('div');
+          btnGroup.className = 'flex items-center gap-1 shrink-0';
+
+          var renBtn = document.createElement('button');
+          renBtn.type = 'button';
+          renBtn.className =
+            'px-1.5 py-1 rounded border border-transparent hover:border-cipherLine font-mono text-[10px] text-iceBlue hover:text-cipherText cursor-pointer';
+          renBtn.textContent = 'REN';
+          renBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            beginInlineRename(row, sess);
+          });
+
+          var delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className =
+            'px-1.5 py-1 rounded border border-transparent hover:border-starkGold/60 font-mono text-[10px] text-cipherMuted hover:text-starkGold cursor-pointer';
+          delBtn.textContent = 'DEL';
+          delBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            deleteSessionById(sess.id);
+          });
+
+          btnGroup.appendChild(renBtn);
+          btnGroup.appendChild(delBtn);
+
+          row.appendChild(clickBox);
+          row.appendChild(btnGroup);
+          dom.sessionList.appendChild(row);
+        });
+
+        syncTelemetryBar();
+      }
+
+      function beginInlineRename(rowEl, sess) {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.value = sess.title || 'New Session';
+        input.className =
+          'flex-1 min-w-0 px-2 py-1 rounded bg-cipherBlack border border-arcCyan font-mono text-xs text-cipherText focus:outline-none';
+
+        var done = false;
+        function finish() {
+          if (done) return;
+          done = true;
+          renameSessionById(sess.id, input.value);
+        }
+
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            finish();
+          } else if (e.key === 'Escape') {
+            done = true;
+            renderSessionList();
+          }
+        });
+        input.addEventListener('blur', finish);
+
+        rowEl.innerHTML = '';
+        rowEl.appendChild(input);
+        input.focus();
+        input.select();
+      }
+
+      function renderEmptyState() {
+        var container = document.createElement('div');
+        container.className = 'max-w-4xl mx-auto py-6 sm:py-10 px-2 text-center space-y-6';
+
+        var badge = document.createElement('div');
+        badge.className =
+          'inline-flex items-center gap-2 px-4 py-1 rounded-full cipher-hud-box font-hud text-[11px] font-semibold tracking-[0.16em] text-arcCyan';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-starkGold"></span><span>C.I.P.H.E.R. // HUD ONLINE</span>';
+
+        var heading = document.createElement('h2');
+        heading.className = 'font-hud text-xl sm:text-3xl font-bold tracking-[0.06em] text-cipherText';
+        heading.textContent = 'All systems nominal. Awaiting directive.';
+
+        var sub = document.createElement('p');
+        sub.className = 'text-sm sm:text-base text-cipherMuted max-w-xl mx-auto';
+        sub.textContent = 'Select a holographic directive card below or enter a custom prompt in the command dock.';
+
+        var grid = document.createElement('div');
+        grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-left pt-2';
+
+        STARTER_CARDS.forEach(function (card) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cipher-starter-box cipher-chamfer-panel p-4 text-left space-y-1.5 cursor-pointer';
+
+          var codeTag = document.createElement('div');
+          codeTag.className = 'font-mono text-[11px] font-semibold text-starkGold tracking-wider';
+          codeTag.textContent = card.code;
+
+          var textEl = document.createElement('div');
+          textEl.className = 'text-sm sm:text-base text-cipherText leading-snug';
+          textEl.textContent = card.prompt;
+
+          btn.appendChild(codeTag);
+          btn.appendChild(textEl);
+
+          btn.addEventListener('click', function () {
+            if (state.isGenerating) return;
+            sendPromptMessage(card.prompt);
+          });
+
+          grid.appendChild(btn);
+        });
+
+        container.appendChild(badge);
+        container.appendChild(heading);
+        container.appendChild(sub);
+        container.appendChild(grid);
+        return container;
+      }
+
+      function highlightCodeSnippet(rawCode) {
+        var escaped = escapeHtml(rawCode);
+        var tokenRegex =
+          /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:const|let|var|function|async|await|return|if|else|for|while|try|catch|finally|throw|new|import|export|from|class|switch|case|break|default|true|false|null|undefined)\b|\b\d+(?:\.\d+)?\b)/g;
+
+        return escaped.replace(tokenRegex, function (match) {
+          if (match.indexOf('//') === 0 || match.indexOf('/*') === 0) {
+            return '<span class="tok-cmt">' + match + '</span>';
+          }
+          if (
+            (match.charAt(0) === '"' && match.charAt(match.length - 1) === '"') ||
+            (match.charAt(0) === "'" && match.charAt(match.length - 1) === "'") ||
+            (match.charAt(0) === '`' && match.charAt(match.length - 1) === '`')
+          ) {
+            return '<span class="tok-str">' + match + '</span>';
+          }
+          if (/^\d/.test(match)) {
+            return '<span class="tok-num">' + match + '</span>';
+          }
+          return '<span class="tok-kw">' + match + '</span>';
+        });
+      }
+
+      function renderInlineMarkdown(raw) {
+        var tokens = String(raw).split(/(`[^`\n]+`)/g);
+        var out = '';
+        for (var i = 0; i < tokens.length; i++) {
+          var tok = tokens[i];
+          if (!tok) continue;
+          if (tok.charAt(0) === '`' && tok.charAt(tok.length - 1) === '`' && tok.length > 2) {
+            out +=
+              '<code class="px-1.5 py-0.5 rounded bg-cipherVoid border border-cipherLine text-arcCyan text-xs font-mono">' +
+              escapeHtml(tok.slice(1, -1)) +
+              '</code>';
+          } else {
+            var safe = escapeHtml(tok);
+            safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-cipherText">$1</strong>');
+            safe = safe.replace(/\*([^*\n]+)\*/g, '<em class="italic text-cipherText/95">$1</em>');
+            out += safe;
+          }
+        }
+        return out;
+      }
+
+      function buildRichMessageContent(markdownText) {
+        var fragment = document.createDocumentFragment();
+        var parts = String(markdownText || '').split(/```([a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g);
+
+        for (var i = 0; i < parts.length; i += 3) {
+          var prose = parts[i] || '';
+          var lang = (parts[i + 1] || 'code').trim() || 'code';
+          var codeBlock = parts[i + 2];
+
+          if (prose.trim().length > 0) {
+            var lines = prose.split('\n');
+            var activeList = null;
+
+            for (var l = 0; l < lines.length; l++) {
+              var line = lines[l];
+              var trimmed = line.trim();
+
+              if (!trimmed) {
+                activeList = null;
+                continue;
+              }
+
+              if (/^###\s+/.test(trimmed)) {
+                activeList = null;
+                var h3 = document.createElement('h3');
+                h3.className = 'font-hud text-xs sm:text-sm font-semibold text-arcCyan tracking-wide pt-1';
+                h3.innerHTML = renderInlineMarkdown(trimmed.replace(/^###\s+/, ''));
+                fragment.appendChild(h3);
+              } else if (/^##\s+/.test(trimmed)) {
+                activeList = null;
+                var h2 = document.createElement('h2');
+                h2.className = 'font-hud text-sm sm:text-base font-bold text-cipherText tracking-wide pt-1';
+                h2.innerHTML = renderInlineMarkdown(trimmed.replace(/^##\s+/, ''));
+                fragment.appendChild(h2);
+              } else if (/^>\s+/.test(trimmed)) {
+                activeList = null;
+                var bq = document.createElement('blockquote');
+                bq.className =
+                  'pl-3 py-1 border-l-2 border-starkGold bg-cipherVoid/60 rounded-r text-xs sm:text-sm text-cipherSubtext';
+                bq.innerHTML = renderInlineMarkdown(trimmed.replace(/^>\s+/, ''));
+                fragment.appendChild(bq);
+              } else if (/^[-*]\s+/.test(trimmed)) {
+                if (!activeList) {
+                  activeList = document.createElement('ul');
+                  activeList.className = 'list-disc list-inside space-y-1 text-xs sm:text-sm text-cipherSubtext pl-1';
+                  fragment.appendChild(activeList);
+                }
+                var li = document.createElement('li');
+                li.innerHTML = renderInlineMarkdown(trimmed.replace(/^[-*]\s+/, ''));
+                activeList.appendChild(li);
+              } else {
+                activeList = null;
+                var p = document.createElement('p');
+                p.className = 'text-xs sm:text-sm leading-relaxed text-cipherSubtext';
+                p.innerHTML = renderInlineMarkdown(line);
+                fragment.appendChild(p);
+              }
+            }
+          }
+
+          if (typeof codeBlock === 'string') {
+            var cleanCode = codeBlock.replace(/\n$/, '');
+            var codeCard = document.createElement('div');
+            codeCard.className = 'my-2.5 rounded-xl overflow-hidden border border-cipherLine bg-cipherBlack/95';
+
+            var header = document.createElement('div');
+            header.className =
+              'px-3 py-1.5 bg-cipherVoid border-b border-cipherLine/70 flex items-center justify-between gap-2 font-mono text-[11px]';
+
+            var langTag = document.createElement('span');
+            langTag.className = 'text-starkGold uppercase tracking-wider';
+            langTag.textContent = lang;
+
+            var copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className =
+              'px-2 py-0.5 rounded border border-cipherLine hover:border-arcCyan text-cipherSubtext hover:text-arcCyan text-[10px] cursor-pointer transition';
+            copyBtn.textContent = 'COPY';
+            copyBtn.addEventListener('click', (function (snippet, buttonEl) {
+              return function () {
+                copyToClipboard(snippet, function () {
+                  buttonEl.textContent = 'COPIED';
+                  setTimeout(function () {
+                    buttonEl.textContent = 'COPY';
+                  }, 1500);
+                });
+              };
+            })(cleanCode, copyBtn));
+
+            header.appendChild(langTag);
+            header.appendChild(copyBtn);
+
+            var pre = document.createElement('pre');
+            pre.className = 'p-3 overflow-x-auto text-xs font-mono text-cipherText leading-relaxed';
+
+            var codeEl = document.createElement('code');
+            codeEl.innerHTML = highlightCodeSnippet(cleanCode);
+
+            pre.appendChild(codeEl);
+            codeCard.appendChild(header);
+            codeCard.appendChild(pre);
+            fragment.appendChild(codeCard);
+          }
+        }
+
+        return fragment;
+      }
+
+      function copyToClipboard(text, onDone) {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard
+            .writeText(text)
+            .then(function () {
+              triggerToast('Copied to clipboard');
+              if (typeof onDone === 'function') onDone();
+            })
+            .catch(function () {
+              copyFallback(text, onDone);
+            });
+        } else {
+          copyFallback(text, onDone);
+        }
+      }
+
+      function copyFallback(text, onDone) {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          triggerToast('Copied to clipboard');
+          if (typeof onDone === 'function') onDone();
+        } catch (err) {
+          triggerToast('Copy failed');
+        }
+      }
+
+      function renderChatStream() {
+        if (!dom.chatStream) return;
+        dom.chatStream.innerHTML = '';
+
+        var session = getActiveSession();
+        var messages = session && Array.isArray(session.messages) ? session.messages : [];
+
+        if (messages.length === 0 && !state.isGenerating) {
+          dom.chatStream.appendChild(renderEmptyState());
+          return;
+        }
+
+        var activeModel = getActiveModelForProvider(state.provider) || DEFAULT_GEMINI_MODEL;
+
+        messages.forEach(function (msg) {
+          var isUser = msg.role === 'user';
+          var wrapper = document.createElement('div');
+          wrapper.className = 'flex flex-col ' + (isUser ? 'items-end' : 'items-start');
+
+          var callsign = document.createElement('div');
+          callsign.className = 'font-mono text-[10px] mb-1 px-1 ' + (isUser ? 'text-starkGold' : 'text-arcCyan');
+          var rawModel = msg && typeof msg.model === 'string' ? msg.model.trim() : '';
+          var safeModel =
+            rawModel && rawModel !== 'undefined' && rawModel !== 'null'
+              ? rawModel
+              : (activeModel || 'UPLINK');
+          callsign.textContent = isUser ? 'OPERATOR // YOU' : 'C.I.P.H.E.R. // ' + safeModel;
+
+          var bubble = document.createElement('div');
+          if (isUser) {
+            bubble.className =
+              'max-w-[88%] sm:max-w-[74%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-cipherPanel/90 border border-cipherLineStrong text-cipherText text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-hudSurface';
+            bubble.textContent = msg.text;
+          } else if (msg.isError) {
+            bubble.className =
+              'max-w-[92%] sm:max-w-[82%] px-4 py-3 rounded-2xl rounded-tl-sm bg-amber-950/75 border border-starkGold text-starkGold font-mono text-xs sm:text-sm';
+            bubble.textContent = msg.text;
+          } else {
+            bubble.className =
+              'max-w-[95%] sm:max-w-[84%] px-4 py-3 rounded-2xl rounded-tl-sm cipher-hud-box text-cipherSubtext shadow-hudSurface space-y-2';
+            bubble.appendChild(buildRichMessageContent(msg.text));
+          }
+
+          wrapper.appendChild(callsign);
+          wrapper.appendChild(bubble);
+          dom.chatStream.appendChild(wrapper);
+        });
+
+        if (state.isGenerating) {
+          var waitWrap = document.createElement('div');
+          waitWrap.className = 'flex flex-col items-start';
+
+          var waitLabel = document.createElement('div');
+          waitLabel.className = 'font-mono text-[10px] text-arcCyan mb-1 px-1';
+          waitLabel.textContent = 'C.I.P.H.E.R. // PROCESSING (' + state.vibe + ')';
+
+          var waitBubble = document.createElement('div');
+          waitBubble.className =
+            'px-4 py-3 rounded-2xl rounded-tl-sm cipher-hud-box inline-flex items-center gap-1.5';
+          waitBubble.innerHTML =
+            '<span class="cipher-dot"></span><span class="cipher-dot"></span><span class="cipher-dot"></span>';
+
+          waitWrap.appendChild(waitLabel);
+          waitWrap.appendChild(waitBubble);
+          dom.chatStream.appendChild(waitWrap);
+        }
+
+        dom.chatStream.scrollTop = dom.chatStream.scrollHeight;
+      }
+
+      function generateDemoReply(promptText) {
+        var q = String(promptText || '').toLowerCase();
+        var isTactical = state.vibe === 'TACTICAL HUD';
+        var activeModel = getActiveModelForProvider(state.provider);
+        var providerLabel = PROVIDER_LABELS[state.provider] || 'GOOGLE GEMINI';
+
+        if (
+          q.indexOf('gemini') !== -1 ||
+          q.indexOf('generatecontent') !== -1 ||
+          q.indexOf('fetch') !== -1 ||
+          q.indexOf('api') !== -1
+        ) {
+          return (
+            (isTactical
+              ? 'Directive acknowledged. Here is a **Gemini generateContent** client module calibrated for `' +
+                activeModel +
+                '` (' +
+                providerLabel +
+                '):\n\n'
+              : 'Bet — here is a clean **Gemini REST API** snippet using `' +
+                activeModel +
+                '` (' +
+                providerLabel +
+                '):\n\n') +
+            '```javascript\nexport async function askCipherGemini(apiKey, prompt, model = "gemini-3.8-flash") {\n  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;\n  const res = await fetch(endpoint, {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({\n      contents: [{ role: "user", parts: [{ text: prompt }] }]\n    })\n  });\n  if (!res.ok) {\n    throw new Error(`Gemini HTTP ${res.status}`);\n  }\n  const data = await res.json();\n  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";\n}\n```'
+          );
+        }
+
+        if (q.indexOf('websocket') !== -1 || q.indexOf('backoff') !== -1 || q.indexOf('event bus') !== -1) {
+          return (
+            (isTactical
+              ? 'HUD architecture brief for a fault-tolerant **WebSocket Event Bus**:\n\n'
+              : 'How to ship a WebSocket event bus that stays rock-solid under flaky networks:\n\n') +
+            '- **Jittered Backoff:** Retry on `500ms * 2^n + randomJitter`, capped at `12s`.\n' +
+            '- **Idempotent Event IDs:** Attach a unique `eventId` so reconnect replays never double-apply state.\n' +
+            '- **Outbound Buffer:** Queue user dispatches locally while reconnecting and flush in order on `open`.'
+          );
+        }
+
+        if (q.indexOf('command') !== -1 || q.indexOf('tailwind') !== -1 || q.indexOf('ui') !== -1) {
+          return (
+            'Here is a crisp **HUD Command Bar** in Tailwind CSS + vanilla JS:\n\n' +
+            '```html\n<div id="cipher-cmd" class="hidden fixed inset-0 z-50 bg-black/80 flex items-start justify-center pt-20 px-4">\n  <div class="w-full max-w-lg rounded-2xl bg-[#000000] border border-[#00E5FF]/40 p-3 space-y-2">\n    <input id="cipher-cmd-input" type="text" placeholder="Run HUD command..." class="w-full px-3 py-2 rounded-lg bg-[#010a12] border border-[#00E5FF]/25 font-mono text-xs text-[#F0F9FF] focus:outline-none focus:border-[#00E5FF]" />\n    <div id="cipher-cmd-list" class="max-h-56 overflow-y-auto font-mono text-xs text-[#7DD3FC]"></div>\n  </div>\n</div>\n```'
+          );
+        }
+
+        return (
+          (isTactical
+            ? '**C.I.P.H.E.R. // TACTICAL HUD** (' + providerLabel + ') briefing on `' + activeModel + '`:\n\n'
+            : '**C.I.P.H.E.R. // GEN-Z TECH** (' + providerLabel + ') sandbox response on `' + activeModel + '`:\n\n') +
+          '> ' +
+          promptText +
+          '\n\n' +
+          '- **1. Scope & Contracts:** Lock down latency budgets, data schemas, and error states first.\n' +
+          '- **2. Core Loop:** Build the minimal vertical slice and verify state transitions.\n' +
+          '- **3. Live Uplink:** Add your Gemini or OpenAI ChatGPT API key in **API KEY** anytime for live model responses.'
+        );
+      }
+
+      async function requestGeminiCompletion(session) {
+        var activeModel = getActiveModelForProvider('gemini');
+        var url =
+          'https://generativelanguage.googleapis.com/v1beta/models/' +
+          encodeURIComponent(activeModel) +
+          ':generateContent?key=' +
+          encodeURIComponent(state.geminiKey);
+
+        var contents = [];
+        var list = Array.isArray(session.messages) ? session.messages : [];
+        for (var i = 0; i < list.length; i++) {
+          var item = list[i];
+          if (item.isError) continue;
+          contents.push({
+            role: item.role === 'model' ? 'model' : 'user',
+            parts: [{ text: String(item.text || '') }]
+          });
+        }
+
+        var systemText = SYSTEM_PROMPTS[state.vibe] || SYSTEM_PROMPTS['GEN-Z TECH'];
+
+        var resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemText }]
+            },
+            contents: contents
+          })
+        });
+
+        var json = null;
+        try {
+          json = await resp.json();
+        } catch (err) {
+          throw new Error('Malformed JSON response (HTTP ' + resp.status + ')');
+        }
+
+        if (!resp.ok) {
+          var message =
+            json && json.error && json.error.message
+              ? json.error.message
+              : 'Gemini API request failed (HTTP ' + resp.status + ')';
+          throw new Error(message);
+        }
+
+        var cand = json && Array.isArray(json.candidates) ? json.candidates[0] : null;
+        var parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];
+        var output = parts
+          .map(function (p) {
+            return p && typeof p.text === 'string' ? p.text : '';
+          })
+          .join('')
+          .trim();
+
+        if (!output) {
+          throw new Error('Empty response received from Gemini.');
+        }
+
+        return output;
+      }
+
+      async function requestOpenAIChatCompletion(session) {
+        var activeModel = getActiveModelForProvider('openai');
+        var systemText = SYSTEM_PROMPTS[state.vibe] || SYSTEM_PROMPTS['GEN-Z TECH'];
+
+        var messages = [
+          {
+            role: 'system',
+            content: systemText
+          }
+        ];
+
+        var list = Array.isArray(session.messages) ? session.messages : [];
+        for (var i = 0; i < list.length; i++) {
+          var item = list[i];
+          if (item.isError) continue;
+          messages.push({
+            role: item.role === 'model' || item.role === 'assistant' ? 'assistant' : 'user',
+            content: String(item.text || '')
+          });
+        }
+
+        var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + state.openaiKey
+          },
+          body: JSON.stringify({
+            model: activeModel,
+            messages: messages
+          })
+        });
+
+        var json = null;
+        try {
+          json = await resp.json();
+        } catch (err) {
+          throw new Error('Malformed JSON response from OpenAI (HTTP ' + resp.status + ')');
+        }
+
+        if (!resp.ok) {
+          var message =
+            json && json.error && json.error.message
+              ? json.error.message
+              : 'OpenAI API request failed (HTTP ' + resp.status + ')';
+          throw new Error(message);
+        }
+
+        var choice = json && Array.isArray(json.choices) ? json.choices[0] : null;
+        var content = choice && choice.message ? choice.message.content : '';
+        if (Array.isArray(content)) {
+          content = content
+            .map(function (part) {
+              return part && typeof part.text === 'string' ? part.text : '';
+            })
+            .join('');
+        }
+
+        var output = String(content || '').trim();
+        if (!output) {
+          throw new Error('Empty response received from OpenAI ChatGPT.');
+        }
+
+        return output;
+      }
+
+      async function requestActiveProviderCompletion(session) {
+        if (state.provider === 'openai') {
+          return requestOpenAIChatCompletion(session);
+        }
+        return requestGeminiCompletion(session);
+      }
+
+      function sendPromptMessage(rawText) {
+        if (state.isGenerating) return;
+        var text = String(rawText || '').trim();
+        if (!text) return;
+
+        var session = getActiveSession();
+        if (!Array.isArray(session.messages)) session.messages = [];
+
+        if (session.messages.length === 0 && (!session.title || session.title === 'New Session')) {
+          session.title = text.length > 34 ? text.slice(0, 34).trim() + '...' : text;
+        }
+
+        session.messages.push({
+          id: 'u_' + Date.now(),
+          role: 'user',
+          text: text,
+          timestamp: Date.now()
+        });
+        session.updatedAt = Date.now();
+
+        if (dom.promptTextarea) {
+          dom.promptTextarea.value = '';
+          autoResizePrompt();
+        }
+
+        state.isGenerating = true;
+        if (dom.transmitBtn) dom.transmitBtn.disabled = true;
+
+        saveSessions();
+        renderSessionList();
+        renderChatStream();
+        syncTelemetryBar();
+
+        var activeKey = getActiveApiKeyForProvider(state.provider);
+        var activeModel = getActiveModelForProvider(state.provider) || DEFAULT_GEMINI_MODEL;
+        var useDemo = state.demoMode || !activeKey;
+
+        if (useDemo) {
+          setTimeout(function () {
+            var reply = generateDemoReply(text);
+            session.messages.push({
+              id: 'm_' + Date.now(),
+              role: 'model',
+              text: reply,
+              model: activeModel,
+              timestamp: Date.now()
+            });
+            session.updatedAt = Date.now();
+            state.isGenerating = false;
+            if (dom.transmitBtn) dom.transmitBtn.disabled = false;
+            saveSessions();
+            renderSessionList();
+            renderChatStream();
+          }, 380);
+          return;
+        }
+
+        requestActiveProviderCompletion(session)
+          .then(function (reply) {
+            session.messages.push({
+              id: 'm_' + Date.now(),
+              role: 'model',
+              text: reply,
+              model: activeModel,
+              timestamp: Date.now()
+            });
+            session.updatedAt = Date.now();
+          })
+          .catch(function (err) {
+            session.messages.push({
+              id: 'e_' + Date.now(),
+              role: 'model',
+              text: 'UPLINK ERROR: ' + (err && err.message ? err.message : 'Unable to reach AI provider'),
+              model: activeModel,
+              isError: true,
+              timestamp: Date.now()
+            });
+            session.updatedAt = Date.now();
+          })
+          .finally(function () {
+            state.isGenerating = false;
+            if (dom.transmitBtn) dom.transmitBtn.disabled = false;
+            saveSessions();
+            renderSessionList();
+            renderChatStream();
+          });
+      }
+
+      function autoResizePrompt() {
+        if (!dom.promptTextarea) return;
+        dom.promptTextarea.style.height = 'auto';
+        dom.promptTextarea.style.height = Math.min(dom.promptTextarea.scrollHeight, 144) + 'px';
+      }
+
+      function syncModalProviderUI(providerName) {
+        modalDraftProvider = providerName === 'openai' ? 'openai' : 'gemini';
+        var isGemini = modalDraftProvider === 'gemini';
+
+        if (dom.providerGeminiBtn) {
+          dom.providerGeminiBtn.className =
+            'py-2 px-3 rounded-lg bg-cipherVoid font-mono text-xs font-semibold transition cursor-pointer ' +
+            (isGemini
+              ? 'border border-arcCyan text-arcCyan'
+              : 'border border-cipherLine text-cipherSubtext hover:border-cipherLineStrong');
+        }
+        if (dom.providerOpenaiBtn) {
+          dom.providerOpenaiBtn.className =
+            'py-2 px-3 rounded-lg bg-cipherVoid font-mono text-xs font-semibold transition cursor-pointer ' +
+            (!isGemini
+              ? 'border border-arcCyan text-arcCyan'
+              : 'border border-cipherLine text-cipherSubtext hover:border-cipherLineStrong');
+        }
+
+        var draftModel = getActiveModelForProvider(modalDraftProvider);
+        populateModelSelect(dom.modalModelSelect, modalDraftProvider, draftModel);
+      }
+
+      function openConfigModal() {
+        if (!dom.apiConfigModal) return;
+        if (dom.modalGeminiKeyInput) {
+          dom.modalGeminiKeyInput.value = state.geminiKey;
+          dom.modalGeminiKeyInput.type = 'password';
+        }
+        if (dom.modalOpenaiKeyInput) {
+          dom.modalOpenaiKeyInput.value = state.openaiKey;
+          dom.modalOpenaiKeyInput.type = 'password';
+        }
+        if (dom.modalToggleGeminiVisBtn) dom.modalToggleGeminiVisBtn.textContent = 'SHOW';
+        if (dom.modalToggleOpenaiVisBtn) dom.modalToggleOpenaiVisBtn.textContent = 'SHOW';
+        if (dom.modalVibeSelect) dom.modalVibeSelect.value = state.vibe;
+
+        syncModalProviderUI(state.provider);
+
+        var draftKey =
+          modalDraftProvider === 'openai'
+            ? (dom.modalOpenaiKeyInput ? dom.modalOpenaiKeyInput.value.trim() : state.openaiKey)
+            : (dom.modalGeminiKeyInput ? dom.modalGeminiKeyInput.value.trim() : state.geminiKey);
+
+        if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = state.demoMode || !draftKey;
+
+        dom.apiConfigModal.classList.remove('hidden');
+        dom.apiConfigModal.classList.add('flex');
+        setTimeout(function () {
+          if (modalDraftProvider === 'openai' && dom.modalOpenaiKeyInput) {
+            dom.modalOpenaiKeyInput.focus();
+          } else if (dom.modalGeminiKeyInput) {
+            dom.modalGeminiKeyInput.focus();
+          }
+        }, 40);
+      }
+
+      function closeConfigModal() {
+        if (!dom.apiConfigModal) return;
+        dom.apiConfigModal.classList.add('hidden');
+        dom.apiConfigModal.classList.remove('flex');
+      }
+
+      function attachListeners() {
+        if (dom.initializeChatBtn) dom.initializeChatBtn.addEventListener('click', navigateToChat);
+        if (dom.introConfigureApiBtn) dom.introConfigureApiBtn.addEventListener('click', openConfigModal);
+        if (dom.introStatusPill) dom.introStatusPill.addEventListener('click', openConfigModal);
+        if (dom.backToIntroBtn) dom.backToIntroBtn.addEventListener('click', navigateToIntro);
+
+        if (dom.toggleSidebarBtn) {
+          dom.toggleSidebarBtn.addEventListener('click', function () {
+            if (!dom.chatSidebar) return;
+            var closed = dom.chatSidebar.classList.contains('-translate-x-full');
+            if (closed) openSidebarDrawer();
+            else closeSidebarDrawer();
+          });
+        }
+        if (dom.closeSidebarMobileBtn) dom.closeSidebarMobileBtn.addEventListener('click', closeSidebarDrawer);
+        if (dom.cipherSidebarBackdrop) dom.cipherSidebarBackdrop.addEventListener('click', closeSidebarDrawer);
+
+        if (dom.newSessionBtn) {
+          dom.newSessionBtn.addEventListener('click', function () {
+            if (state.isGenerating) return;
+            createSession(false);
+            closeSidebarDrawer();
+            if (dom.promptTextarea) dom.promptTextarea.focus();
+          });
+        }
+
+        if (dom.sessionFilterInput) {
+          dom.sessionFilterInput.addEventListener('input', function () {
+            state.filterQuery = dom.sessionFilterInput.value || '';
+            renderSessionList();
+          });
+        }
+
+        if (dom.purgeHistoryBtn) dom.purgeHistoryBtn.addEventListener('click', handlePurgeHistory);
+
+        if (dom.modelSelect) {
+          dom.modelSelect.addEventListener('change', function () {
+            setActiveModelForProvider(state.provider, dom.modelSelect.value);
+            saveConfig();
+            syncHudStatus();
+            triggerToast('Model: ' + getActiveModelForProvider(state.provider));
+          });
+        }
+
+        if (dom.providerPillBtn) {
+          dom.providerPillBtn.addEventListener('click', openConfigModal);
+        }
+
+        if (dom.vibeToggleBtn) {
+          dom.vibeToggleBtn.addEventListener('click', function () {
+            state.vibe = state.vibe === 'GEN-Z TECH' ? 'TACTICAL HUD' : 'GEN-Z TECH';
+            saveConfig();
+            syncHudStatus();
+            triggerToast('Profile: ' + state.vibe);
+          });
+        }
+
+        if (dom.apiKeyBtn) dom.apiKeyBtn.addEventListener('click', openConfigModal);
+
+        if (dom.hudMotionBtn) {
+          dom.hudMotionBtn.addEventListener('click', function () {
+            state.hudModeIndex = (state.hudModeIndex + 1) % HUD_MODES.length;
+            syncHudStatus();
+            triggerToast('HUD mode: ' + HUD_MODES[state.hudModeIndex]);
+          });
+        }
+
+        if (dom.chatForm) {
+          dom.chatForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!dom.promptTextarea) return;
+            sendPromptMessage(dom.promptTextarea.value);
+          });
+        }
+
+        if (dom.promptTextarea) {
+          dom.promptTextarea.addEventListener('input', autoResizePrompt);
+          dom.promptTextarea.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              sendPromptMessage(dom.promptTextarea.value);
+            }
+          });
+        }
+
+        if (dom.closeModalBtn) dom.closeModalBtn.addEventListener('click', closeConfigModal);
+        if (dom.apiConfigModal) {
+          dom.apiConfigModal.addEventListener('click', function (e) {
+            if (e.target === dom.apiConfigModal) closeConfigModal();
+          });
+        }
+
+        if (dom.providerGeminiBtn) {
+          dom.providerGeminiBtn.addEventListener('click', function () {
+            if (dom.modalModelSelect) {
+              setActiveModelForProvider(modalDraftProvider, dom.modalModelSelect.value);
+            }
+            syncModalProviderUI('gemini');
+          });
+        }
+
+        if (dom.providerOpenaiBtn) {
+          dom.providerOpenaiBtn.addEventListener('click', function () {
+            if (dom.modalModelSelect) {
+              setActiveModelForProvider(modalDraftProvider, dom.modalModelSelect.value);
+            }
+            syncModalProviderUI('openai');
+          });
+        }
+
+        if (dom.modalToggleGeminiVisBtn && dom.modalGeminiKeyInput) {
+          dom.modalToggleGeminiVisBtn.addEventListener('click', function () {
+            var isPw = dom.modalGeminiKeyInput.type === 'password';
+            dom.modalGeminiKeyInput.type = isPw ? 'text' : 'password';
+            dom.modalToggleGeminiVisBtn.textContent = isPw ? 'HIDE' : 'SHOW';
+          });
+        }
+
+        if (dom.modalToggleOpenaiVisBtn && dom.modalOpenaiKeyInput) {
+          dom.modalToggleOpenaiVisBtn.addEventListener('click', function () {
+            var isPw = dom.modalOpenaiKeyInput.type === 'password';
+            dom.modalOpenaiKeyInput.type = isPw ? 'text' : 'password';
+            dom.modalToggleOpenaiVisBtn.textContent = isPw ? 'HIDE' : 'SHOW';
+          });
+        }
+
+        if (dom.modalClearKeyBtn) {
+          dom.modalClearKeyBtn.addEventListener('click', function () {
+            if (modalDraftProvider === 'openai') {
+              if (dom.modalOpenaiKeyInput) dom.modalOpenaiKeyInput.value = '';
+              state.openaiKey = '';
+            } else {
+              if (dom.modalGeminiKeyInput) dom.modalGeminiKeyInput.value = '';
+              state.geminiKey = '';
+            }
+            if (state.provider === modalDraftProvider) {
+              state.demoMode = true;
+              if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = true;
+            }
+            saveConfig();
+            syncHudStatus();
+            triggerToast((PROVIDER_LABELS[modalDraftProvider] || 'Provider') + ' key cleared');
+          });
+        }
+
+        if (dom.modalSaveBtn) {
+          dom.modalSaveBtn.addEventListener('click', function () {
+            var enteredGemini = dom.modalGeminiKeyInput ? dom.modalGeminiKeyInput.value.trim() : '';
+            var enteredOpenai = dom.modalOpenaiKeyInput ? dom.modalOpenaiKeyInput.value.trim() : '';
+            var demoChecked = dom.modalDemoCheckbox ? dom.modalDemoCheckbox.checked : false;
+            var chosenModel = dom.modalModelSelect ? dom.modalModelSelect.value : '';
+            var chosenVibe = dom.modalVibeSelect ? dom.modalVibeSelect.value : state.vibe;
+
+            state.geminiKey = enteredGemini;
+            state.openaiKey = enteredOpenai;
+            state.provider = modalDraftProvider === 'openai' ? 'openai' : 'gemini';
+
+            if (chosenModel) {
+              setActiveModelForProvider(state.provider, chosenModel);
+            }
+
+            if (chosenVibe === 'GEN-Z TECH' || chosenVibe === 'TACTICAL HUD') {
+              state.vibe = chosenVibe;
+            }
+
+            var activeKey = getActiveApiKeyForProvider(state.provider);
+            state.demoMode = !activeKey ? true : demoChecked;
+
+            saveConfig();
+            syncHudStatus();
+            closeConfigModal();
+            triggerToast(
+              state.demoMode
+                ? 'Saved · Demo Mode'
+                : 'Saved · ' + (PROVIDER_LABELS[state.provider] || 'Provider') + ' Live'
+            );
+          });
+        }
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+            if (dom.apiConfigModal && !dom.apiConfigModal.classList.contains('hidden')) {
+              closeConfigModal();
+            } else {
+              closeSidebarDrawer();
+            }
+          }
+        });
+      }
+
+      /* =====================================================================
+         3D CMATRIX DEPTH BACKDROP (SUBTLE CYAN / ICE-BLUE / GOLD TELEMETRY)
+         ===================================================================== */
+      function buildGlyphSpriteTexture(symbol, colorHex) {
+        var c = document.createElement('canvas');
+        c.width = 64;
+        c.height = 64;
+        var g = c.getContext('2d');
+        g.clearRect(0, 0, 64, 64);
+        g.font = 'bold 38px "JetBrains Mono", monospace';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillStyle = colorHex;
+        g.fillText(symbol, 32, 34);
+        var tex = new THREE.CanvasTexture(c);
+        tex.needsUpdate = true;
+        return tex;
+      }
+
+      function init2DFallbackBackdrop(pointer) {
+        if (dom.canvas3d) dom.canvas3d.style.display = 'none';
+        if (!dom.canvas2d) return;
+        dom.canvas2d.style.display = 'block';
+        var ctx = dom.canvas2d.getContext('2d');
+        if (!ctx) return;
+
+        var cells = [];
+        for (var i = 0; i < 32; i++) {
+          cells.push({
+            xRatio: (i + 0.5) / 32,
+            y: Math.random() * 900,
+            zDepth: (i % 7) / 7,
+            speed: 0.25 + (i % 4) * 0.09,
+            char: MATRIX_CHARS.charAt(i % MATRIX_CHARS.length)
+          });
+        }
+
+        function resize2d() {
+          dom.canvas2d.width = window.innerWidth;
+          dom.canvas2d.height = window.innerHeight;
+        }
+
+        resize2d();
+        resizeSceneFn = resize2d;
+        window.addEventListener('resize', resize2d);
+
+        function tick2d() {
+          requestAnimationFrame(tick2d);
+          var w = dom.canvas2d.width;
+          var h = dom.canvas2d.height;
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.36)';
+          ctx.fillRect(0, 0, w, h);
+
+          var mode = HUD_MODES[state.hudModeIndex];
+          var mult = mode === 'STILL' ? 0 : (mode === 'PULSE' ? 1.65 : 1);
+          var baseAlpha = state.screen === 'intro' ? 0.07 : 0.12;
+
+          for (var j = 0; j < cells.length; j++) {
+            var item = cells[j];
+            item.y += item.speed * mult;
+            item.zDepth += 0.0016 * mult;
+            if (item.y > h + 24) {
+              item.y = -24;
+              item.zDepth = 0;
+            }
+            if (item.zDepth > 1) item.zDepth = 0.05;
+
+            var px = Math.round(12 + item.zDepth * 12);
+            var alpha = (baseAlpha + item.zDepth * 0.10).toFixed(2);
+            ctx.font = 'bold ' + px + 'px "JetBrains Mono", monospace';
+            ctx.fillStyle = 'rgba(0, 229, 255, ' + alpha + ')';
+
+            var cx = w * 0.5;
+            var spread = (item.xRatio * w - cx) * (0.78 + item.zDepth * 0.42);
+            ctx.fillText(item.char, cx + spread + pointer.x * 12, item.y + pointer.y * 8);
+          }
+        }
+
+        tick2d();
+      }
+
+      function initCipherMatrixScene() {
+        var pointer = { x: 0, y: 0 };
+
+        window.addEventListener('mousemove', function (e) {
+          pointer.x = (e.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
+          pointer.y = -((e.clientY / Math.max(window.innerHeight, 1)) * 2 - 1);
+
+          if (state.screen === 'intro' && dom.cipherReticleWrap) {
+            var mx = (pointer.x * 9).toFixed(2);
+            var my = (-pointer.y * 7).toFixed(2);
+            dom.cipherReticleWrap.style.transform = 'translate3d(' + mx + 'px, ' + my + 'px, 0)';
+          }
+        });
+
+        if (typeof THREE === 'undefined' || !dom.canvas3d) {
+          init2DFallbackBackdrop(pointer);
+          return;
+        }
+
+        var renderer = null;
+        try {
+          renderer = new THREE.WebGLRenderer({
+            canvas: dom.canvas3d,
+            antialias: true,
+            alpha: true
+          });
+        } catch (err) {
+          init2DFallbackBackdrop(pointer);
+          return;
+        }
+
+        var scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.018);
+
+        var camera = new THREE.PerspectiveCamera(
+          56,
+          window.innerWidth / Math.max(window.innerHeight, 1),
+          0.1,
+          140
+        );
+        camera.position.set(0, 0, 15);
+
+        renderer.setClearColor(0x000000, 1);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        var palette = ['#00E5FF', '#38BDF8', '#0EA5E9', '#FBBF24'];
+        var textures = [];
+        for (var i = 0; i < 16; i++) {
+          var ch = MATRIX_CHARS.charAt(i % MATRIX_CHARS.length);
+          var colHex = i === 14 ? palette[3] : palette[i % 3];
+          textures.push(buildGlyphSpriteTexture(ch, colHex));
+        }
+
+        var group = new THREE.Group();
+        scene.add(group);
+
+        var MIN_Z = -26;
+        var MAX_Z = 11.5;
+        var TOP_Y = 9.5;
+        var BOTTOM_Y = -9.5;
+        var SPAN_Y = TOP_Y - BOTTOM_Y;
+
+        var columns = [];
+        var colCount = 32;
+
+        for (var c = 0; c < colCount; c++) {
+          var xPos = ((c / (colCount - 1)) - 0.5) * 30;
+          var zInit = MIN_Z + ((c * 3.8) % (MAX_Z - MIN_Z));
+          var sprites = [];
+
+          for (var r = 0; r < 6; r++) {
+            var tex = textures[(c + r * 3) % textures.length];
+            var mat = new THREE.SpriteMaterial({
+              map: tex,
+              transparent: true,
+              opacity: 0.12,
+              depthWrite: false
+            });
+            var spr = new THREE.Sprite(mat);
+            var yInit = TOP_Y - r * (SPAN_Y / 5.5);
+            spr.position.set(xPos, yInit, zInit);
+            spr.scale.set(0.78, 0.78, 1);
+            group.add(spr);
+            sprites.push(spr);
+          }
+
+          columns.push({
+            sprites: sprites,
+            fallSpeed: 0.0085 + (c % 5) * 0.0022,
+            approachSpeed: 0.011 + (c % 4) * 0.0035,
+            phase: c * 0.42,
+            step: 0
+          });
+        }
+
+        setSceneScreenFn = function (screenName) {
+          group.visible = true;
+          if (screenName === 'chat' && dom.cipherReticleWrap) {
+            dom.cipherReticleWrap.style.transform = 'translate3d(0px, 0px, 0)';
+          }
+        };
+
+        function handleResize() {
+          var w = window.innerWidth;
+          var h = Math.max(window.innerHeight, 1);
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        }
+
+        resizeSceneFn = handleResize;
+        window.addEventListener('resize', handleResize);
+
+        if (typeof ResizeObserver !== 'undefined') {
+          var ro = new ResizeObserver(handleResize);
+          ro.observe(document.body);
+        }
+
+        var camX = 0;
+        var camY = 0;
+        var clock = 0;
+
+        function animateLoop() {
+          requestAnimationFrame(animateLoop);
+          clock += 0.02;
+
+          var mode = HUD_MODES[state.hudModeIndex];
+          var parallaxScale = mode === 'STILL' ? 0.22 : 0.72;
+
+          camX += (pointer.x * parallaxScale - camX) * 0.05;
+          camY += (pointer.y * (parallaxScale * 0.7) - camY) * 0.05;
+          camera.position.x = camX;
+          camera.position.y = camY;
+          camera.lookAt(0, 0, -5);
+
+          var speedFactor = mode === 'STILL' ? 0 : (mode === 'PULSE' ? 1.7 : 1);
+          var screenOpacityCap = state.screen === 'intro' ? 0.42 : 0.72;
+
+          for (var i = 0; i < columns.length; i++) {
+            var col = columns[i];
+            col.step += 1;
+            var breath = 1 + Math.sin(clock * 1.2 + col.phase) * (mode === 'PULSE' ? 0.08 : 0.03);
+
+            for (var s = 0; s < col.sprites.length; s++) {
+              var sprite = col.sprites[s];
+              sprite.position.y -= col.fallSpeed * speedFactor;
+              sprite.position.z += col.approachSpeed * speedFactor;
+
+              if (sprite.position.y < BOTTOM_Y) {
+                sprite.position.y += SPAN_Y;
+              }
+              if (sprite.position.z > MAX_Z) {
+                sprite.position.z = MIN_Z;
+                sprite.position.y = TOP_Y - ((s * 2.1 + i * 0.8) % SPAN_Y);
+              }
+
+              var depthT = Math.max(0, Math.min(1, (sprite.position.z - MIN_Z) / (MAX_Z - MIN_Z)));
+              var scaleVal = (0.60 + depthT * 0.48) * breath;
+              sprite.scale.set(scaleVal, scaleVal, 1);
+
+              var edgeFade =
+                sprite.position.z > MAX_Z - 2.2
+                  ? Math.max(0, (MAX_Z - sprite.position.z) / 2.2)
+                  : 1;
+
+              sprite.material.opacity = (0.10 + depthT * 0.12) * edgeFade * screenOpacityCap;
+
+              if (mode !== 'STILL' && col.step % 36 === 0 && (s + i) % 4 === 0) {
+                sprite.material.map = textures[Math.floor(Math.random() * textures.length)];
+                sprite.material.needsUpdate = true;
+              }
+            }
+          }
+
+          renderer.render(scene, camera);
+        }
+
+        setSceneScreenFn(state.screen);
+        animateLoop();
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        cacheElements();
+        loadState();
+        attachListeners();
+        syncHudStatus();
+        renderSessionList();
+        renderChatStream();
+        syncTelemetryBar();
+        initCipherMatrixScene();
+      });
+    })();
+  </script>
+</body>
+</html>
