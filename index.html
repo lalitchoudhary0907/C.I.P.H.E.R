@@ -287,38 +287,121 @@
 
     .cipher-hud-box {
       position: relative;
-      background: linear-gradient(155deg, rgba(7, 24, 38, 0.62), rgba(3, 12, 21, 0.76));
-      border: 1px solid rgba(125, 211, 252, 0.24);
+      background: linear-gradient(165deg, #0b2236 0%, #051320 55%, #020911 100%);
+      border: 1px solid rgba(56, 189, 248, 0.36);
       box-shadow:
-        inset 0 1px 0 rgba(224, 242, 254, 0.14),
-        inset 0 -10px 24px rgba(0, 0, 0, 0.35),
-        0 12px 32px rgba(0, 0, 0, 0.52);
-      backdrop-filter: blur(20px) saturate(120%);
-      -webkit-backdrop-filter: blur(20px) saturate(120%);
+        inset 0 1px 0 rgba(125, 211, 252, 0.24),
+        inset 3px 0 0 rgba(0, 229, 255, 0.42),
+        0 4px 0 #01050a,
+        0 14px 28px rgba(0, 0, 0, 0.88);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
 
     .cipher-user-glass {
       position: relative;
-      background: linear-gradient(155deg, rgba(8, 34, 54, 0.64), rgba(4, 17, 29, 0.78));
-      border: 1px solid rgba(56, 189, 248, 0.34);
+      background: linear-gradient(160deg, #0d2e47 0%, #061b2c 58%, #030e18 100%);
+      border: 1px solid rgba(0, 229, 255, 0.44);
       box-shadow:
-        inset 0 1px 0 rgba(224, 242, 254, 0.16),
-        inset 0 -10px 22px rgba(0, 0, 0, 0.32),
-        0 10px 28px rgba(0, 0, 0, 0.48);
-      backdrop-filter: blur(18px) saturate(120%);
-      -webkit-backdrop-filter: blur(18px) saturate(120%);
+        inset 0 1px 0 rgba(186, 230, 253, 0.28),
+        0 4px 0 #02080f,
+        0 12px 24px rgba(0, 0, 0, 0.85);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
 
     .cipher-error-glass {
       position: relative;
-      background: linear-gradient(155deg, rgba(58, 28, 7, 0.68), rgba(28, 12, 3, 0.80));
-      border: 1px solid rgba(251, 191, 36, 0.42);
+      background: linear-gradient(160deg, #2d1205 0%, #190902 100%);
+      border: 1px solid rgba(251, 191, 36, 0.52);
       box-shadow:
-        inset 0 1px 0 rgba(254, 243, 199, 0.14),
-        inset 0 -10px 22px rgba(0, 0, 0, 0.34),
-        0 10px 28px rgba(0, 0, 0, 0.48);
-      backdrop-filter: blur(18px) saturate(115%);
-      -webkit-backdrop-filter: blur(18px) saturate(115%);
+        inset 0 1px 0 rgba(251, 191, 36, 0.25),
+        0 4px 0 #090300,
+        0 12px 24px rgba(0, 0, 0, 0.88);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    /* 3D Tactile Gradient Buttons */
+    .cipher-btn-primary {
+      background: linear-gradient(135deg, #22d3ee 0%, #00E5FF 48%, #0284c7 100%);
+      border: 1px solid rgba(224, 242, 254, 0.35);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        0 3px 0 #0369a1,
+        0 10px 22px rgba(0, 229, 255, 0.24);
+      transition: transform 0.12s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    }
+
+    .cipher-btn-primary:hover:not(:disabled) {
+      filter: brightness(1.07);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.52),
+        0 3px 0 #0369a1,
+        0 14px 26px rgba(0, 229, 255, 0.34);
+    }
+
+    .cipher-btn-primary:active:not(:disabled) {
+      transform: translateY(1px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.30),
+        0 1px 0 #0369a1,
+        0 5px 12px rgba(0, 229, 255, 0.20);
+    }
+
+    .cipher-btn-secondary {
+      background: linear-gradient(180deg, rgba(14, 33, 50, 0.96) 0%, rgba(3, 12, 22, 0.98) 100%);
+      border: 1px solid rgba(0, 229, 255, 0.22);
+      box-shadow:
+        inset 0 1px 0 rgba(125, 211, 252, 0.16),
+        0 2px 0 rgba(0, 0, 0, 0.95),
+        0 6px 14px rgba(0, 0, 0, 0.75);
+      transition: transform 0.12s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+    }
+
+    .cipher-btn-secondary:hover:not(:disabled) {
+      border-color: rgba(0, 229, 255, 0.65);
+      box-shadow:
+        inset 0 1px 0 rgba(125, 211, 252, 0.26),
+        0 2px 0 rgba(0, 0, 0, 0.95),
+        0 8px 18px rgba(0, 229, 255, 0.16);
+    }
+
+    .cipher-btn-secondary:active:not(:disabled) {
+      transform: translateY(1px);
+      box-shadow:
+        inset 0 1px 0 rgba(125, 211, 252, 0.10),
+        0 1px 0 rgba(0, 0, 0, 0.95),
+        0 3px 8px rgba(0, 0, 0, 0.70);
+    }
+
+    /* Solid & 3D Sculpted HUD Chrome */
+    .cipher-sidebar-3d {
+      background: linear-gradient(180deg, #070d14 0%, #020509 55%, #000000 100%);
+      box-shadow:
+        inset -1px 0 0 rgba(0, 229, 255, 0.12),
+        6px 0 28px rgba(0, 0, 0, 0.92);
+    }
+
+    .cipher-navbar-3d {
+      background: linear-gradient(180deg, #09131e 0%, #020509 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(125, 211, 252, 0.14),
+        0 8px 24px rgba(0, 0, 0, 0.88);
+    }
+
+    .cipher-dock-3d {
+      background: linear-gradient(180deg, #08111b 0%, #010408 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(125, 211, 252, 0.16),
+        0 -8px 26px rgba(0, 0, 0, 0.90);
+    }
+
+    .cipher-input-well-3d {
+      background: linear-gradient(180deg, #01050a 0%, #030b14 100%);
+      box-shadow:
+        inset 0 2px 6px rgba(0, 0, 0, 0.85),
+        0 1px 0 rgba(125, 211, 252, 0.12);
     }
 
     .cipher-starter-box {
@@ -628,7 +711,7 @@
         <button
           id="initialize-chat-btn"
           type="button"
-          class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-xs sm:text-sm tracking-[0.12em] shadow-cyanPulse transition cursor-pointer"
+          class="cipher-btn-primary w-full sm:w-auto px-7 py-3.5 rounded-xl text-cipherBlack font-hud font-bold text-xs sm:text-sm tracking-[0.12em] cursor-pointer"
         >
           INITIALIZE CHAT &rarr;
         </button>
@@ -636,7 +719,7 @@
         <button
           id="intro-configure-api-btn"
           type="button"
-          class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-cipherBlack hover:border-arcCyan border border-cipherLine text-cipherSubtext font-mono text-xs tracking-wider transition cursor-pointer"
+          class="cipher-btn-secondary w-full sm:w-auto px-5 py-3.5 rounded-xl text-cipherSubtext font-mono text-xs tracking-wider cursor-pointer"
         >
           CONFIGURE API KEY
         </button>
@@ -665,14 +748,14 @@
       aria-hidden="true"
     ></div>
 
-    <!-- Left Collapsible Sidebar: Session Logs (Solid #000000) -->
+    <!-- Left Collapsible Sidebar: Session Logs (Solid 3D Chrome) -->
     <aside
       id="chat-sidebar"
-      class="fixed md:static inset-y-0 left-0 z-40 w-72 shrink-0 h-full bg-cipherBlack border-r border-cipherLine flex flex-col transition-transform duration-200 -translate-x-full md:translate-x-0"
+      class="cipher-sidebar-3d fixed md:static inset-y-0 left-0 z-40 w-72 shrink-0 h-full border-r border-cipherLine flex flex-col transition-transform duration-200 -translate-x-full md:translate-x-0"
       aria-label="Session Logs Sidebar"
     >
       <!-- Sidebar Top Header -->
-      <div class="p-3.5 border-b border-cipherLine bg-cipherBlack flex items-center justify-between gap-2 shrink-0">
+      <div class="p-3.5 border-b border-cipherLine bg-transparent flex items-center justify-between gap-2 shrink-0">
         <div>
           <p class="font-hud text-xs font-semibold tracking-[0.16em] text-arcCyan">SESSION LOGS</p>
           <p id="sidebar-session-count" class="font-mono text-[11px] text-cipherMuted">0 threads</p>
@@ -680,18 +763,18 @@
         <button
           id="close-sidebar-mobile-btn"
           type="button"
-          class="md:hidden px-2.5 py-1.5 rounded-lg bg-cipherBlack border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+          class="cipher-btn-secondary md:hidden px-2.5 py-1.5 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
         >
           ESC
         </button>
       </div>
 
       <!-- New Chat + Search Filter -->
-      <div class="p-3 space-y-2.5 border-b border-cipherLine bg-cipherBlack shrink-0">
+      <div class="p-3 space-y-2.5 border-b border-cipherLine bg-transparent shrink-0">
         <button
           id="new-session-btn"
           type="button"
-          class="w-full py-2.5 px-3.5 rounded-xl bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-xs tracking-wider transition cursor-pointer"
+          class="cipher-btn-primary w-full py-2.5 px-3.5 rounded-xl text-cipherBlack font-hud font-bold text-xs tracking-wider cursor-pointer"
         >
           + NEW CHAT
         </button>
@@ -700,24 +783,24 @@
           id="session-filter-input"
           type="text"
           placeholder="Search sessions..."
-          class="w-full px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText placeholder:text-cipherMuted/50"
+          class="cipher-input-well-3d w-full px-3 py-2 rounded-lg border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherText placeholder:text-cipherMuted/50"
         />
       </div>
 
       <!-- Session List -->
       <div
         id="session-list"
-        class="flex-1 overflow-y-auto p-2.5 space-y-1.5 bg-cipherBlack"
+        class="flex-1 overflow-y-auto p-2.5 space-y-1.5 bg-transparent"
         role="list"
         aria-label="Saved sessions"
       ></div>
 
       <!-- Two-Step Purge History Footer -->
-      <div class="p-3 border-t border-cipherLine bg-cipherBlack shrink-0">
+      <div class="p-3 border-t border-cipherLine bg-transparent shrink-0">
         <button
           id="purge-history-btn"
           type="button"
-          class="w-full py-2 px-3 rounded-lg bg-cipherBlack border border-cipherLine hover:border-starkGold hover:text-starkGold font-mono text-xs tracking-wider text-cipherMuted transition cursor-pointer"
+          class="cipher-btn-secondary w-full py-2 px-3 rounded-lg hover:border-starkGold hover:text-starkGold font-mono text-xs tracking-wider text-cipherMuted cursor-pointer"
         >
           PURGE HISTORY
         </button>
@@ -726,13 +809,13 @@
 
     <!-- Right Main HUD Chat Column -->
     <div class="flex-1 min-w-0 h-full flex flex-col bg-transparent">
-      <!-- Top Navigation Bar (Solid #000000 with Holographic Cyan Border) -->
-      <header class="bg-cipherBlack border-b border-cipherLine px-2.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+      <!-- Top Navigation Bar (Solid 3D Chrome with Holographic Cyan Border) -->
+      <header class="cipher-navbar-3d relative z-20 border-b border-cipherLine px-2.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0 flex-wrap">
         <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           <button
             id="back-to-intro-btn"
             type="button"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
           >
             &larr; INTRO
           </button>
@@ -740,7 +823,7 @@
           <button
             id="toggle-sidebar-btn"
             type="button"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
           >
             CHATS
           </button>
@@ -756,13 +839,13 @@
           <select
             id="model-select"
             aria-label="Select AI model"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherSubtext cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg focus:border-arcCyan focus:outline-none font-mono text-xs text-cipherSubtext cursor-pointer"
           ></select>
 
           <button
             id="api-key-btn"
             type="button"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-arcCyan transition cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs text-arcCyan cursor-pointer"
           >
             API KEY
           </button>
@@ -770,7 +853,7 @@
           <button
             id="voice-jarvis-btn"
             type="button"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
             title="Toggle J.A.R.V.I.S. voice command listener"
           >
             VOICE // JARVIS
@@ -779,7 +862,7 @@
           <button
             id="voice-readout-btn"
             type="button"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-starkGold font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg hover:border-starkGold font-mono text-xs text-cipherSubtext cursor-pointer"
             title="Toggle automatic J.A.R.V.I.S. voice readout"
           >
             SPEAK: OFF
@@ -788,7 +871,7 @@
           <button
             id="hud-motion-btn"
             type="button"
-            class="px-2.5 py-1.5 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext transition cursor-pointer"
+            class="cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
             title="Cycle HUD & CMatrix animation mode"
           >
             HUD: FLOW
@@ -796,8 +879,8 @@
         </div>
       </header>
 
-      <!-- Active Session Telemetry Sub-Bar (Solid #000000) -->
-      <div class="px-3 sm:px-6 py-2 bg-cipherBlack border-b border-cipherLine/75 flex items-center justify-between gap-2 text-[11px] font-mono shrink-0 flex-wrap">
+      <!-- Active Session Telemetry Sub-Bar (Solid 3D Chrome) -->
+      <div class="cipher-navbar-3d relative z-10 px-3 sm:px-6 py-2 border-b border-cipherLine/75 flex items-center justify-between gap-2 text-[11px] font-mono shrink-0 flex-wrap">
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-starkGold shrink-0">[NODE]</span>
           <span id="thread-title-display" class="text-cipherText font-medium truncate">New Session</span>
@@ -808,7 +891,7 @@
           <button
             id="provider-pill-btn"
             type="button"
-            class="px-2 py-0.5 rounded border border-cipherLine hover:border-arcCyan text-arcCyan text-[10px] tracking-wider transition cursor-pointer"
+            class="cipher-btn-secondary px-2 py-0.5 rounded text-arcCyan text-[10px] tracking-wider cursor-pointer"
             title="Open API provider settings"
           >
             GROQ
@@ -816,7 +899,7 @@
           <button
             id="vibe-toggle-btn"
             type="button"
-            class="px-2 py-0.5 rounded border border-cipherLine hover:border-starkGold text-starkGold text-[10px] tracking-wider transition cursor-pointer"
+            class="cipher-btn-secondary px-2 py-0.5 rounded hover:border-starkGold text-starkGold text-[10px] tracking-wider cursor-pointer"
             title="Switch response profile"
           >
             GEN-Z TECH
@@ -832,10 +915,10 @@
         aria-live="polite"
       ></main>
 
-      <!-- Bottom Prompt Dock (Solid #000000) -->
-      <footer class="bg-cipherBlack border-t border-cipherLine px-3 sm:px-6 py-3 shrink-0">
+      <!-- Bottom Prompt Dock (Solid 3D Sculpted Chrome) -->
+      <footer class="cipher-dock-3d relative z-20 border-t border-cipherLine px-3 sm:px-6 py-3 shrink-0">
         <form id="chat-form" class="max-w-4xl mx-auto flex items-end gap-2.5">
-          <div class="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-cipherVoid border border-cipherLine focus-within:border-arcCyan transition">
+          <div class="cipher-input-well-3d flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-cipherLine focus-within:border-arcCyan transition">
             <span class="font-mono text-sm text-arcCyan select-none">[&gt;]</span>
             <textarea
               id="prompt-textarea"
@@ -848,7 +931,7 @@
           <button
             id="transmit-btn"
             type="submit"
-            class="px-4 sm:px-5 py-3 rounded-xl bg-arcCyan hover:bg-iceBlue disabled:opacity-50 text-cipherBlack font-hud font-bold text-xs tracking-wider transition cursor-pointer shrink-0"
+            class="cipher-btn-primary px-4 sm:px-5 py-3 rounded-xl disabled:opacity-50 text-cipherBlack font-hud font-bold text-xs tracking-wider cursor-pointer shrink-0"
           >
             SEND
           </button>
@@ -875,7 +958,7 @@
         <button
           id="close-modal-btn"
           type="button"
-          class="px-2.5 py-1 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+          class="cipher-btn-secondary px-2.5 py-1 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
         >
           CLOSE
         </button>
@@ -899,7 +982,7 @@
           <button
             id="modal-toggle-groq-vis-btn"
             type="button"
-            class="px-3 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-arcCyan font-mono text-xs text-cipherSubtext cursor-pointer"
+            class="cipher-btn-secondary px-3 py-2 rounded-lg font-mono text-xs text-cipherSubtext cursor-pointer"
           >
             SHOW
           </button>
@@ -944,14 +1027,14 @@
         <button
           id="modal-clear-key-btn"
           type="button"
-          class="px-3.5 py-2 rounded-lg bg-cipherVoid border border-cipherLine hover:border-starkGold text-cipherMuted hover:text-starkGold font-mono text-xs cursor-pointer"
+          class="cipher-btn-secondary px-3.5 py-2 rounded-lg hover:border-starkGold text-cipherMuted hover:text-starkGold font-mono text-xs cursor-pointer"
         >
           CLEAR KEY
         </button>
         <button
           id="modal-save-btn"
           type="button"
-          class="px-4 py-2 rounded-lg bg-arcCyan hover:bg-iceBlue text-cipherBlack font-hud font-bold text-xs tracking-wider cursor-pointer"
+          class="cipher-btn-primary px-4 py-2 rounded-lg text-cipherBlack font-hud font-bold text-xs tracking-wider cursor-pointer"
         >
           SAVE CONFIG
         </button>
@@ -1565,18 +1648,18 @@
         if (dom.voiceJarvisBtn) {
           dom.voiceJarvisBtn.textContent = state.voiceListening ? 'JARVIS: LISTENING' : 'VOICE // JARVIS';
           dom.voiceJarvisBtn.className =
-            'px-2.5 py-1.5 rounded-lg bg-cipherVoid font-mono text-xs transition cursor-pointer ' +
+            'cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs cursor-pointer ' +
             (state.voiceListening
-              ? 'border border-starkGold text-starkGold shadow-[0_0_12px_rgba(251,191,36,0.35)]'
-              : 'border border-cipherLine hover:border-arcCyan text-cipherSubtext');
+              ? 'border-starkGold text-starkGold shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+              : 'text-cipherSubtext');
         }
         if (dom.voiceReadoutBtn) {
           dom.voiceReadoutBtn.textContent = state.voiceReadoutEnabled ? 'SPEAK: ON' : 'SPEAK: OFF';
           dom.voiceReadoutBtn.className =
-            'px-2.5 py-1.5 rounded-lg bg-cipherVoid font-mono text-xs transition cursor-pointer ' +
+            'cipher-btn-secondary px-2.5 py-1.5 rounded-lg font-mono text-xs cursor-pointer ' +
             (state.voiceReadoutEnabled
-              ? 'border border-arcCyan text-arcCyan'
-              : 'border border-cipherLine hover:border-starkGold text-cipherSubtext');
+              ? 'border-arcCyan text-arcCyan'
+              : 'hover:border-starkGold text-cipherSubtext');
         }
         if (dom.hudMotionBtn) {
           dom.hudMotionBtn.textContent = 'HUD: ' + HUD_MODES[state.hudModeIndex];
