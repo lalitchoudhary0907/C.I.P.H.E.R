@@ -13,6 +13,23 @@ var modelCache = {
   fetchedAt: 0
 };
 
+function getProviderStatus() {
+  var providers = {
+    groq: Boolean(String(process.env.GROQ_API_KEY || '').trim()),
+    openai: Boolean(String(process.env.OPENAI_API_KEY || '').trim()),
+    anthropic: Boolean(String(process.env.ANTHROPIC_API_KEY || '').trim()),
+    gemini: Boolean(String(process.env.GEMINI_API_KEY || '').trim())
+  };
+  var configuredProviders = Object.keys(providers).filter(function (key) {
+    return providers[key];
+  });
+  return {
+    providers: providers,
+    configuredProviders: configuredProviders,
+    canSwitchModels: configuredProviders.length > 1
+  };
+}
+
 function resolveApiKey(apiKeyOverride) {
   var override = String(apiKeyOverride || '').trim();
   if (override) return override;
@@ -173,10 +190,8 @@ async function createChatCompletion(options) {
   var opts = options || {};
   var apiKey = resolveApiKey(opts.apiKeyOverride);
   if (!apiKey) {
-    var authErr = new Error(
-      'No Groq API key configured. Set GROQ_API_KEY in server/.env or provide a custom key in API settings.'
-    );
-    authErr.status = 400;
+    var authErr = new Error('Backend AI service is not configured on the server.');
+    authErr.status = 500;
     throw authErr;
   }
 
@@ -255,6 +270,7 @@ async function createChatCompletion(options) {
 
 module.exports = {
   CURATED_GROQ_MODELS: CURATED_GROQ_MODELS,
+  getProviderStatus: getProviderStatus,
   resolveApiKey: resolveApiKey,
   getAvailableModels: getAvailableModels,
   createChatCompletion: createChatCompletion

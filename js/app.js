@@ -47,6 +47,7 @@
     dom.apiKeyBtn = document.getElementById('api-key-btn');
     dom.statusDot = document.getElementById('status-dot');
     dom.statusPillText = document.getElementById('status-pill-text');
+    dom.modelSwitcherPill = document.getElementById('model-switcher-pill');
     dom.modelSelect = document.getElementById('model-select');
     dom.voiceJarvisBtn = document.getElementById('voice-jarvis-btn');
     dom.voiceBtnLabel = document.getElementById('voice-btn-label');
@@ -70,12 +71,10 @@
 
     dom.apiConfigModal = document.getElementById('api-config-modal');
     dom.closeModalBtn = document.getElementById('close-modal-btn');
-    dom.modalGroqKeyInput = document.getElementById('modal-groq-key-input');
-    dom.modalToggleGroqVisBtn = document.getElementById('modal-toggle-groq-vis-btn');
+    dom.modalModelField = document.getElementById('modal-model-field');
     dom.modalModelSelect = document.getElementById('modal-model-select');
     dom.modalVibeSelect = document.getElementById('modal-vibe-select');
     dom.modalDemoCheckbox = document.getElementById('modal-demo-checkbox');
-    dom.modalClearKeyBtn = document.getElementById('modal-clear-key-btn');
     dom.modalSaveBtn = document.getElementById('modal-save-btn');
 
     dom.utilityModal = document.getElementById('utility-modal');
@@ -158,6 +157,7 @@
     state.sessions.unshift(fresh);
     state.activeSessionId = fresh.id;
     CIPHER.saveSessions();
+    if (CIPHER.syncCreateSessionBackend) CIPHER.syncCreateSessionBackend(fresh);
     if (!skipRender) {
       renderSessionList();
       renderChatStream();
@@ -173,6 +173,7 @@
     sess.title = clean || 'New Session';
     sess.updatedAt = Date.now();
     CIPHER.saveSessions();
+    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(sess);
     renderSessionList();
     triggerToast('Session renamed');
   }
@@ -191,12 +192,14 @@
     state.sessions.splice(index, 1);
     state.editingMessageId = null;
     if (CIPHER.stopVoiceReadout) CIPHER.stopVoiceReadout();
+    if (CIPHER.syncDeleteSessionBackend) CIPHER.syncDeleteSessionBackend(sessionId);
     if (state.sessions.length === 0) {
       createSession(true);
     } else if (state.activeSessionId === sessionId) {
       state.activeSessionId = state.sessions[0].id;
     }
     CIPHER.saveSessions();
+    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
     renderSessionList();
     renderChatStream();
     syncQuotaCard();
@@ -228,9 +231,14 @@
     disarmPurgeButton();
     state.editingMessageId = null;
     if (CIPHER.stopVoiceReadout) CIPHER.stopVoiceReadout();
+    var oldIds = state.sessions.map(function (s) { return s.id; });
     state.sessions = [];
+    oldIds.forEach(function (id) {
+      if (CIPHER.syncDeleteSessionBackend) CIPHER.syncDeleteSessionBackend(id);
+    });
     createSession(true);
     CIPHER.saveSessions();
+    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
     renderSessionList();
     renderChatStream();
     syncQuotaCard();
@@ -310,8 +318,9 @@
     var state = CIPHER.state;
     var dom = CIPHER.dom;
     var activeModel = CIPHER.getActiveModel();
-    var activeKey = CIPHER.getActiveApiKey();
-    var isLive = !state.demoMode && Boolean(activeKey);
+    var hasBackendGroq = CIPHER.isBackendGroqReady && CIPHER.isBackendGroqReady();
+    var isLive = !state.demoMode && hasBackendGroq;
+    var allowModelSwitch = Boolean(CIPHER.canSwitchModels && CIPHER.canSwitchModels());
 
     if (dom.statusDot) {
       dom.statusDot.className = isLive
@@ -330,7 +339,18 @@
       dom.introStatusText.textContent = isLive ? 'CIPHER Online' : 'CIPHER Online (Demo)';
     }
 
-    CIPHER.populateModelSelect(dom.modelSelect, activeModel);
+    if (dom.modelSwitcherPill) {
+      dom.modelSwitcherPill.classList.toggle('hidden', !allowModelSwitch);
+    }
+    if (dom.navModelsBtn) {
+      dom.navModelsBtn.classList.toggle('hidden', !allowModelSwitch);
+    }
+    if (dom.modalModelField) {
+      dom.modalModelField.classList.toggle('hidden', !allowModelSwitch);
+    }
+    if (allowModelSwitch) {
+      CIPHER.populateModelSelect(dom.modelSelect, activeModel);
+    }
 
     if (dom.voiceJarvisBtn && dom.voiceBtnLabel) {
       dom.voiceBtnLabel.textContent = state.voiceListening ? 'Listening...' : 'Voice';
@@ -1085,12 +1105,13 @@
     if (dom.transmitBtn) dom.transmitBtn.disabled = true;
 
     CIPHER.saveSessions();
+    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
     renderSessionList();
     renderChatStream();
 
-    var activeKey = CIPHER.getActiveApiKey();
     var activeModel = CIPHER.getActiveModel() || CIPHER.DEFAULT_GROQ_MODEL;
-    var useDemo = state.demoMode || !activeKey;
+    var hasBackendGroq = CIPHER.isBackendGroqReady && CIPHER.isBackendGroqReady();
+    var useDemo = state.demoMode || !hasBackendGroq;
 
     if (useDemo) {
       setTimeout(function () {
@@ -1107,6 +1128,7 @@
         state.isGenerating = false;
         if (dom.transmitBtn) dom.transmitBtn.disabled = false;
         CIPHER.saveSessions();
+        if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
         renderSessionList();
         renderChatStream();
         if (state.voiceReadoutEnabled && CIPHER.speakMessageText) CIPHER.speakMessageText(reply, msgObj.id);
@@ -1147,6 +1169,7 @@
         state.isGenerating = false;
         if (dom.transmitBtn) dom.transmitBtn.disabled = false;
         CIPHER.saveSessions();
+        if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
         renderSessionList();
         renderChatStream();
       });
@@ -1177,6 +1200,7 @@
     }
 
     CIPHER.saveSessions();
+    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
     renderSessionList();
     renderChatStream();
     triggerToast('Message updated');
@@ -1226,23 +1250,22 @@
     var dom = CIPHER.dom;
     var state = CIPHER.state;
     if (!dom.apiConfigModal) return;
-    if (dom.modalGroqKeyInput) {
-      dom.modalGroqKeyInput.value = state.groqKey;
-      dom.modalGroqKeyInput.type = 'password';
-    }
-    if (dom.modalToggleGroqVisBtn) dom.modalToggleGroqVisBtn.textContent = 'SHOW';
     if (dom.modalVibeSelect) dom.modalVibeSelect.value = state.vibe;
-    CIPHER.populateModelSelect(dom.modalModelSelect, CIPHER.getActiveModel());
+    var allowModelSwitch = Boolean(CIPHER.canSwitchModels && CIPHER.canSwitchModels());
+    if (dom.modalModelField) {
+      dom.modalModelField.classList.toggle('hidden', !allowModelSwitch);
+    }
+    if (allowModelSwitch) {
+      CIPHER.populateModelSelect(dom.modalModelSelect, CIPHER.getActiveModel());
+    }
 
-    var draftKey = dom.modalGroqKeyInput ? dom.modalGroqKeyInput.value.trim() : state.groqKey;
-    if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = state.demoMode || !draftKey;
+    if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = state.demoMode;
 
     dom.apiConfigModal.classList.remove('hidden');
     dom.apiConfigModal.classList.add('flex');
-    if (state.groqKey) CIPHER.fetchGroqAvailableModels(state.groqKey, false);
-    setTimeout(function () {
-      if (dom.modalGroqKeyInput) dom.modalGroqKeyInput.focus();
-    }, 40);
+    if (CIPHER.isBackendAvailable && CIPHER.isBackendAvailable()) {
+      CIPHER.fetchGroqAvailableModels('', false);
+    }
   }
 
   function closeConfigModal() {
@@ -1290,7 +1313,7 @@
         '<div class="p-3 rounded-xl bg-[#040a12] border border-white/10 flex items-center justify-between"><div><div class="font-semibold text-white">Voice Readout</div><div class="text-slate-400">Auto-speak CIPHER replies</div></div><button id="util-toggle-speak" type="button" class="cipher-btn-pill px-3 py-1.5 rounded-lg text-arcCyan font-mono text-[11px] cursor-pointer">' +
         (state.voiceReadoutEnabled ? 'TURN OFF' : 'TURN ON') +
         '</button></div>' +
-        '<div class="p-3 rounded-xl bg-[#040a12] border border-white/10 flex items-center justify-between"><div><div class="font-semibold text-white">Groq Uplink</div><div class="text-slate-400">Manage API key &amp; models</div></div><button id="util-open-api" type="button" class="cipher-btn-pill px-3 py-1.5 rounded-lg text-arcCyan font-mono text-[11px] cursor-pointer">OPEN</button></div>' +
+        '<div class="p-3 rounded-xl bg-[#040a12] border border-white/10 flex items-center justify-between"><div><div class="font-semibold text-white">Workspace Settings</div><div class="text-slate-400">Response profile &amp; preferences</div></div><button id="util-open-api" type="button" class="cipher-btn-pill px-3 py-1.5 rounded-lg text-arcCyan font-mono text-[11px] cursor-pointer">OPEN</button></div>' +
         '</div>';
       var vBtn = document.getElementById('util-toggle-vibe');
       if (vBtn) {
@@ -1426,8 +1449,9 @@
     }
     if (dom.sidebarStorageBtn) {
       dom.sidebarStorageBtn.addEventListener('click', function () {
-        var isLive = !state.demoMode && Boolean(state.groqKey);
-        triggerToast(isLive ? 'Groq Uplink Live · LocalStorage synced' : 'Demo Sandbox · LocalStorage synced');
+        var hasBackend = CIPHER.isBackendGroqReady && CIPHER.isBackendGroqReady();
+        var isLive = !state.demoMode && Boolean(hasBackend);
+        triggerToast(isLive ? 'CIPHER Uplink Live · Sessions synced' : 'Demo Sandbox · LocalStorage synced');
       });
     }
 
@@ -1528,43 +1552,26 @@
       });
     }
 
-    if (dom.modalToggleGroqVisBtn && dom.modalGroqKeyInput) {
-      dom.modalToggleGroqVisBtn.addEventListener('click', function () {
-        var isPw = dom.modalGroqKeyInput.type === 'password';
-        dom.modalGroqKeyInput.type = isPw ? 'text' : 'password';
-        dom.modalToggleGroqVisBtn.textContent = isPw ? 'HIDE' : 'SHOW';
-      });
-    }
-
-    if (dom.modalClearKeyBtn) {
-      dom.modalClearKeyBtn.addEventListener('click', function () {
-        if (dom.modalGroqKeyInput) dom.modalGroqKeyInput.value = '';
-        state.groqKey = '';
-        state.demoMode = true;
-        if (dom.modalDemoCheckbox) dom.modalDemoCheckbox.checked = true;
-        CIPHER.saveConfig();
-        syncHudStatus();
-        triggerToast('Groq key cleared');
-      });
-    }
-
     if (dom.modalSaveBtn) {
       dom.modalSaveBtn.addEventListener('click', function () {
-        var enteredGroq = dom.modalGroqKeyInput ? dom.modalGroqKeyInput.value.trim() : '';
         var demoChecked = dom.modalDemoCheckbox ? dom.modalDemoCheckbox.checked : false;
         var chosenModel = dom.modalModelSelect ? dom.modalModelSelect.value : '';
         var chosenVibe = dom.modalVibeSelect ? dom.modalVibeSelect.value : state.vibe;
 
-        state.groqKey = enteredGroq;
-        if (chosenModel) CIPHER.setActiveModel(chosenModel);
+        if (chosenModel && CIPHER.canSwitchModels && CIPHER.canSwitchModels()) {
+          CIPHER.setActiveModel(chosenModel);
+        }
         if (chosenVibe === 'GEN-Z TECH' || chosenVibe === 'TACTICAL HUD') state.vibe = chosenVibe;
-        state.demoMode = !state.groqKey ? true : demoChecked;
+        var hasBackendGroq = CIPHER.isBackendGroqReady && CIPHER.isBackendGroqReady();
+        state.demoMode = !hasBackendGroq ? true : demoChecked;
 
         CIPHER.saveConfig();
         syncHudStatus();
         closeConfigModal();
-        if (state.groqKey) CIPHER.fetchGroqAvailableModels(state.groqKey, true);
-        triggerToast(state.demoMode ? 'Saved · Demo Mode' : 'Saved · Groq Live');
+        if (CIPHER.isBackendAvailable && CIPHER.isBackendAvailable()) {
+          CIPHER.fetchGroqAvailableModels('', true);
+        }
+        triggerToast(state.demoMode ? 'Saved · Demo Mode' : 'Saved · Workspace Settings');
       });
     }
 
@@ -1621,7 +1628,6 @@
     CIPHER.loadState();
     attachListeners();
     syncHudStatus();
-    if (CIPHER.state.groqKey) CIPHER.fetchGroqAvailableModels(CIPHER.state.groqKey, false);
     renderSessionList();
     renderChatStream();
     syncQuotaCard();
@@ -1629,5 +1635,27 @@
     if (CIPHER.initIntroAudio) CIPHER.initIntroAudio();
     if (CIPHER.loadYouTubeBgmApi) CIPHER.loadYouTubeBgmApi();
     if (CIPHER.setupAudioGestureUnlock) CIPHER.setupAudioGestureUnlock();
+
+    if (CIPHER.checkBackendHealth) {
+      CIPHER.checkBackendHealth().then(function (health) {
+        if (health && health.available) {
+          if (health.groqConfigured && localStorage.getItem(CIPHER.STORAGE_KEYS.DEMO_MODE) === null) {
+            CIPHER.state.demoMode = false;
+            CIPHER.saveConfig();
+          }
+          CIPHER.syncSessionsFromBackend().then(function (synced) {
+            if (synced) {
+              renderSessionList();
+              renderChatStream();
+              syncQuotaCard();
+            }
+          });
+          CIPHER.fetchGroqAvailableModels('', false).then(function () {
+            syncHudStatus();
+          });
+          syncHudStatus();
+        }
+      });
+    }
   });
 })(window);

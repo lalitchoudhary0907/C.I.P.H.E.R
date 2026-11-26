@@ -34,9 +34,7 @@
   var DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
 
   var STORAGE_KEYS = {
-    GROQ_KEY: 'cipher_groq_api_key',
     GROQ_MODEL: 'cipher_groq_model',
-    GROQ_MODELS_CACHE: 'cipher_groq_models_cache',
     DEMO_MODE: 'cipher_hud_demo',
     VIBE: 'cipher_hud_vibe',
     VOICE_READOUT: 'cipher_hud_voice_readout',
@@ -128,9 +126,10 @@
   var state = {
     screen: 'intro',
     provider: 'groq',
-    groqKey: '',
-    demoMode: true,
+    demoMode: false,
     groqModel: DEFAULT_GROQ_MODEL,
+    canSwitchModels: false,
+    configuredProviders: [],
     vibe: 'GEN-Z TECH',
     hudWaveEnabled: true,
     filterQuery: '',

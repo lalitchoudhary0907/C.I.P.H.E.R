@@ -71,7 +71,7 @@
           id="intro-status-pill"
           type="button"
           class="cipher-btn-pill px-3 py-1 rounded-full inline-flex items-center gap-2 text-[11px] font-medium text-slate-200 cursor-pointer"
-          title="Configure Groq API Key"
+          title="CIPHER System Status"
         >
           <span id="intro-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
           <span id="intro-status-text">CIPHER Online</span>
@@ -120,7 +120,7 @@
           id="intro-settings-btn"
           type="button"
           class="cipher-btn-pill p-2 rounded-full text-slate-300 hover:text-arcCyan cursor-pointer"
-          title="API Key & Model Settings"
+          title="Workspace Settings"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
             <circle cx="12" cy="12" r="3" />
@@ -333,7 +333,7 @@
         <button
           id="nav-models-btn"
           type="button"
-          class="w-full px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/[0.04] transition cursor-pointer"
+          class="hidden w-full px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/[0.04] transition cursor-pointer"
         >
           <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -429,7 +429,7 @@
           <button
             id="sidebar-settings-btn"
             type="button"
-            title="API Key & Workspace Settings"
+            title="Workspace Settings"
             class="p-1.5 rounded-lg hover:bg-white/[0.05] hover:text-arcCyan transition cursor-pointer"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
@@ -483,20 +483,20 @@
             id="api-key-btn"
             type="button"
             class="cipher-btn-pill px-3 py-1.5 rounded-full inline-flex items-center gap-2 text-xs font-medium text-slate-200 cursor-pointer"
-            title="Configure Groq API Key"
+            title="CIPHER System Status"
           >
             <span id="status-dot" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
             <span id="status-pill-text">CIPHER Online</span>
           </button>
 
-          <!-- Model Selector Dropdown Pill -->
-          <div class="cipher-btn-pill relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs text-slate-200">
+          <!-- Model Selector Dropdown Pill (shown only when multiple providers are configured) -->
+          <div id="model-switcher-pill" class="hidden cipher-btn-pill relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs text-slate-200">
             <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             </svg>
             <select
               id="model-select"
-              aria-label="Select Groq model"
+              aria-label="Select AI model"
               class="bg-transparent font-mono text-xs text-slate-200 focus:outline-none cursor-pointer pr-1"
             ></select>
           </div>
@@ -676,7 +676,7 @@
   </div>
 
   <!-- =====================================================================
-       API KEY, MODEL & PROFILE CONFIGURATION MODAL
+       WORKSPACE & PROFILE CONFIGURATION MODAL
        ===================================================================== -->
   <div
     id="api-config-modal"
@@ -688,7 +688,7 @@
     <div class="w-full max-w-md rounded-2xl bg-[#070f1a] border border-cyan-400/25 p-5 sm:p-6 shadow-[0_24px_60px_rgba(0,0,0,0.9)] space-y-4">
       <div class="flex items-center justify-between gap-2">
         <h2 id="api-modal-heading" class="font-hud text-sm font-bold tracking-[0.14em] text-arcCyan">
-          CIPHER // GROQ UPLINK
+          CIPHER // WORKSPACE SETTINGS
         </h2>
         <button
           id="close-modal-btn"
@@ -700,32 +700,11 @@
       </div>
 
       <p class="text-xs text-slate-400 leading-relaxed">
-        Enter your <span class="font-mono text-arcCyan">GROQ</span> API key (stored locally in your browser), or run in Demo Sandbox mode.
+        Configure your CIPHER response profile and workspace preferences.
       </p>
 
-      <div class="space-y-1.5">
-        <label for="modal-groq-key-input" class="block font-mono text-xs text-slate-300">
-          GROQ API KEY
-        </label>
-        <div class="flex items-center gap-2">
-          <input
-            id="modal-groq-key-input"
-            type="password"
-            placeholder="gsk_..."
-            class="flex-1 px-3 py-2 rounded-lg bg-[#03080e] border border-white/10 focus:border-arcCyan focus:outline-none font-mono text-xs text-slate-100"
-          />
-          <button
-            id="modal-toggle-groq-vis-btn"
-            type="button"
-            class="cipher-btn-pill px-3 py-2 rounded-lg font-mono text-xs text-slate-300 cursor-pointer"
-          >
-            SHOW
-          </button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div class="space-y-1">
+      <div class="grid grid-cols-1 gap-3">
+        <div id="modal-model-field" class="space-y-1 hidden">
           <label for="modal-model-select" class="block font-mono text-[11px] text-slate-400">
             MODEL
           </label>
@@ -759,13 +738,6 @@
       </label>
 
       <div class="pt-2 flex items-center justify-end gap-2">
-        <button
-          id="modal-clear-key-btn"
-          type="button"
-          class="cipher-btn-pill px-3.5 py-2 rounded-lg hover:border-starkGold text-slate-400 hover:text-starkGold font-mono text-xs cursor-pointer"
-        >
-          CLEAR KEY
-        </button>
         <button
           id="modal-save-btn"
           type="button"

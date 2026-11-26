@@ -7,12 +7,15 @@ var router = express.Router();
 
 router.get('/models', async function (req, res, next) {
   try {
-    var apiKeyOverride = req.get('x-groq-api-key') || '';
     var forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
-    var result = await groqClient.getAvailableModels(apiKeyOverride, forceRefresh);
+    var result = await groqClient.getAvailableModels('', forceRefresh);
+    var providerStatus = groqClient.getProviderStatus();
     res.json({
       models: result.models,
-      source: result.source
+      source: result.source,
+      providers: providerStatus.providers,
+      configuredProviders: providerStatus.configuredProviders,
+      canSwitchModels: providerStatus.canSwitchModels
     });
   } catch (err) {
     next(err);
@@ -22,13 +25,11 @@ router.get('/models', async function (req, res, next) {
 router.post('/chat', async function (req, res, next) {
   try {
     var body = req.body || {};
-    var apiKeyOverride = req.get('x-groq-api-key') || body.apiKey || '';
     var stream = Boolean(body.stream);
     var result = await groqClient.createChatCompletion({
       messages: body.messages,
       model: body.model,
-      stream: stream,
-      apiKeyOverride: apiKeyOverride
+      stream: stream
     });
 
     if (!stream) {

@@ -90,7 +90,6 @@ router.post('/sessions/:id/messages', async function (req, res, next) {
       return res.status(201).json({ session: sess, message: msgObj });
     }
 
-    var apiKeyOverride = req.get('x-groq-api-key') || body.apiKey || '';
     var systemText =
       typeof body.systemPrompt === 'string' && body.systemPrompt.trim()
         ? body.systemPrompt.trim()
@@ -110,8 +109,7 @@ router.post('/sessions/:id/messages', async function (req, res, next) {
     var completion = await groqClient.createChatCompletion({
       messages: chatMessages,
       model: body.model,
-      stream: false,
-      apiKeyOverride: apiKeyOverride
+      stream: false
     });
 
     var replyObj = {

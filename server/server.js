@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 var chatRoutes = require('./routes/chat');
 var sessionRoutes = require('./routes/sessions');
+var groqClient = require('./services/groqClient');
 
 var app = express();
 var PORT = Number(process.env.PORT) || 3001;
@@ -26,10 +27,14 @@ app.use(express.json({ limit: '2mb' }));
 
 // Health check
 app.get('/api/health', function (req, res) {
+  var providerStatus = groqClient.getProviderStatus();
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    groqConfigured: Boolean(String(process.env.GROQ_API_KEY || '').trim())
+    groqConfigured: providerStatus.providers.groq,
+    providers: providerStatus.providers,
+    configuredProviders: providerStatus.configuredProviders,
+    canSwitchModels: providerStatus.canSwitchModels
   });
 });
 

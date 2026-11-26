@@ -1,0 +1,13 @@
+# Environment & Secrets
+.env
+server/.env
+
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Local runtime data
+server/data/*.json
+
+# OS artifacts
+.DS_Store
