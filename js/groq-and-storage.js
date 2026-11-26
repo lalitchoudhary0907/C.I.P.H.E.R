@@ -126,7 +126,8 @@
       if (serverSessions.length > 0) {
         CIPHER.state.sessions = serverSessions;
         if (!CIPHER.state.activeSessionId || (CIPHER.findSessionById && !CIPHER.findSessionById(CIPHER.state.activeSessionId))) {
-          CIPHER.state.activeSessionId = serverSessions[serverSessions.length - 1].id;
+          CIPHER.state.activeSessionId = serverSessions[0].id;
+          saveConfig();
         }
         saveSessions();
         return true;
@@ -377,6 +378,10 @@
       localStorage.setItem(KEYS.VOICE_READOUT, String(state.voiceReadoutEnabled));
       localStorage.setItem(KEYS.BGM_ENABLED, String(state.bgmEnabled));
       localStorage.setItem(KEYS.INTRO_AUDIO_ENABLED, String(state.introAudioEnabled));
+      localStorage.setItem(KEYS.SCREEN, state.screen === 'chat' ? 'chat' : 'intro');
+      if (state.activeSessionId) {
+        localStorage.setItem(KEYS.ACTIVE_SESSION_ID, state.activeSessionId);
+      }
     } catch (err) {}
   }
 
@@ -390,6 +395,8 @@
       var savedVoiceReadout = localStorage.getItem(KEYS.VOICE_READOUT);
       var savedBgmEnabled = localStorage.getItem(KEYS.BGM_ENABLED);
       var savedIntroAudioEnabled = localStorage.getItem(KEYS.INTRO_AUDIO_ENABLED);
+      var savedScreen = localStorage.getItem(KEYS.SCREEN);
+      var savedActiveSessionId = localStorage.getItem(KEYS.ACTIVE_SESSION_ID);
       var savedSessionsRaw = localStorage.getItem(KEYS.SESSIONS);
 
       state.provider = 'groq';
@@ -399,6 +406,17 @@
       state.voiceReadoutEnabled = savedVoiceReadout === 'true';
       state.bgmEnabled = savedBgmEnabled === null ? true : savedBgmEnabled === 'true';
       state.introAudioEnabled = savedIntroAudioEnabled === null ? true : savedIntroAudioEnabled === 'true';
+
+      var hash = typeof global.location !== 'undefined' ? global.location.hash : '';
+      if (hash === '#workspace') {
+        state.screen = 'chat';
+      } else if (hash === '#intro') {
+        state.screen = 'intro';
+      } else if (savedScreen === 'chat' || savedScreen === 'workspace') {
+        state.screen = 'chat';
+      } else {
+        state.screen = 'intro';
+      }
 
       if (savedSessionsRaw) {
         var parsed = JSON.parse(savedSessionsRaw);
@@ -412,6 +430,9 @@
         saveSessions();
       }
 
+      if (savedActiveSessionId && CIPHER.findSessionById) {
+        state.activeSessionId = savedActiveSessionId;
+      }
       if (!state.activeSessionId || (CIPHER.findSessionById && !CIPHER.findSessionById(state.activeSessionId))) {
         state.activeSessionId = state.sessions[state.sessions.length - 1].id;
       }

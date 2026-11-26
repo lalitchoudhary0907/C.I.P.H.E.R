@@ -4,6 +4,8 @@
   var CIPHER = global.CIPHER;
   var toastTimer = null;
   var purgeArmTimer = null;
+  var openSessionMenuId = null;
+  var sessionContextMenuEl = null;
 
   function cacheElements() {
     var dom = CIPHER.dom;
@@ -157,6 +159,7 @@
     state.sessions.unshift(fresh);
     state.activeSessionId = fresh.id;
     CIPHER.saveSessions();
+    CIPHER.saveConfig();
     if (CIPHER.syncCreateSessionBackend) CIPHER.syncCreateSessionBackend(fresh);
     if (!skipRender) {
       renderSessionList();
@@ -199,7 +202,7 @@
       state.activeSessionId = state.sessions[0].id;
     }
     CIPHER.saveSessions();
-    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
+    CIPHER.saveConfig();
     renderSessionList();
     renderChatStream();
     syncQuotaCard();
@@ -238,7 +241,6 @@
     });
     createSession(true);
     CIPHER.saveSessions();
-    if (CIPHER.syncUpdateSessionBackend) CIPHER.syncUpdateSessionBackend(session);
     renderSessionList();
     renderChatStream();
     syncQuotaCard();
@@ -255,22 +257,34 @@
     if (CIPHER.dom.cipherSidebarBackdrop) CIPHER.dom.cipherSidebarBackdrop.classList.add('hidden');
   }
 
+  function applyScreenVisualState(targetScreen) {
+    var dom = CIPHER.dom;
+    var isWorkspace = targetScreen === 'chat';
+    if (dom.introGate) {
+      dom.introGate.classList.toggle('cipher-intro-hidden', isWorkspace);
+      dom.introGate.setAttribute('aria-hidden', isWorkspace ? 'true' : 'false');
+    }
+    if (dom.workspaceShell) {
+      dom.workspaceShell.classList.toggle('cipher-workspace-hidden', !isWorkspace);
+      dom.workspaceShell.setAttribute('aria-hidden', isWorkspace ? 'false' : 'true');
+    }
+    try {
+      if (global.history && typeof global.history.replaceState === 'function') {
+        global.history.replaceState(null, '', isWorkspace ? '#workspace' : '#intro');
+      }
+    } catch (e) {}
+  }
+
   function enterWorkspace(armVoice) {
     var state = CIPHER.state;
     var dom = CIPHER.dom;
     if (state.screen === 'chat') return;
     state.screen = 'chat';
+    CIPHER.saveConfig();
     if (CIPHER.unlockGesture) CIPHER.unlockGesture();
     if (CIPHER.stopIntroAudio) CIPHER.stopIntroAudio();
     if (CIPHER.startYouTubeBgm) CIPHER.startYouTubeBgm();
-    if (dom.introGate) {
-      dom.introGate.classList.add('cipher-intro-hidden');
-      dom.introGate.setAttribute('aria-hidden', 'true');
-    }
-    if (dom.workspaceShell) {
-      dom.workspaceShell.classList.remove('cipher-workspace-hidden');
-      dom.workspaceShell.setAttribute('aria-hidden', 'false');
-    }
+    applyScreenVisualState('chat');
     setTimeout(function () {
       if (armVoice && CIPHER.toggleJarvisVoiceListener) {
         CIPHER.toggleJarvisVoiceListener();
@@ -282,22 +296,16 @@
 
   function returnToIntro() {
     var state = CIPHER.state;
-    var dom = CIPHER.dom;
     if (state.screen === 'intro') return;
     state.screen = 'intro';
+    CIPHER.saveConfig();
+    closeSessionMenu();
     closeSidebarDrawer();
     if (CIPHER.stopYouTubeBgm) CIPHER.stopYouTubeBgm();
     if (state.introAudioEnabled && CIPHER.isGestureUnlocked && CIPHER.isGestureUnlocked() && CIPHER.startIntroAudio) {
       CIPHER.startIntroAudio();
     }
-    if (dom.workspaceShell) {
-      dom.workspaceShell.classList.add('cipher-workspace-hidden');
-      dom.workspaceShell.setAttribute('aria-hidden', 'true');
-    }
-    if (dom.introGate) {
-      dom.introGate.classList.remove('cipher-intro-hidden');
-      dom.introGate.setAttribute('aria-hidden', 'false');
-    }
+    applyScreenVisualState('intro');
   }
 
   function syncQuotaCard() {
@@ -390,10 +398,76 @@
     document.body.classList.toggle('hud-static', !state.hudWaveEnabled);
   }
 
+  function closeSessionMenu() {
+    openSessionMenuId = null;
+    if (sessionContextMenuEl && sessionContextMenuEl.parentNode) {
+      sessionContextMenuEl.parentNode.removeChild(sessionContextMenuEl);
+    }
+    sessionContextMenuEl = null;
+  }
+
+  function openSessionMenu(triggerBtn, rowEl, sess) {
+    if (openSessionMenuId === sess.id) {
+      closeSessionMenu();
+      return;
+    }
+    closeSessionMenu();
+    openSessionMenuId = sess.id;
+
+    var menu = document.createElement('div');
+    menu.id = 'session-context-menu';
+    menu.setAttribute('role', 'menu');
+    menu.className =
+      'fixed z-50 w-36 py-1 rounded-xl bg-[#070f1a]/95 border border-cyan-400/30 shadow-[0_14px_36px_rgba(0,0,0,0.9)] backdrop-blur-md';
+
+    var renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.setAttribute('role', 'menuitem');
+    renameBtn.className =
+      'w-full px-3 py-1.5 text-left text-xs font-mono text-slate-200 hover:bg-cyan-400/10 hover:text-arcCyan flex items-center gap-2 transition cursor-pointer';
+    renameBtn.innerHTML =
+      '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Rename</span>';
+    renameBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeSessionMenu();
+      beginInlineRename(rowEl, sess);
+    });
+
+    var deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('role', 'menuitem');
+    deleteBtn.className =
+      'w-full px-3 py-1.5 text-left text-xs font-mono text-slate-300 hover:bg-amber-400/10 hover:text-starkGold flex items-center gap-2 transition cursor-pointer';
+    deleteBtn.innerHTML =
+      '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg><span>Delete</span>';
+    deleteBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeSessionMenu();
+      deleteSessionById(sess.id);
+    });
+
+    menu.appendChild(renameBtn);
+    menu.appendChild(deleteBtn);
+    document.body.appendChild(menu);
+    sessionContextMenuEl = menu;
+
+    var rect = triggerBtn.getBoundingClientRect();
+    var menuHeight = menu.offsetHeight || 72;
+    var menuWidth = menu.offsetWidth || 144;
+    var top = rect.bottom + 6;
+    if (top + menuHeight > global.innerHeight - 12) {
+      top = Math.max(12, rect.top - menuHeight - 6);
+    }
+    var left = Math.min(global.innerWidth - menuWidth - 12, Math.max(12, rect.right - menuWidth));
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
   function renderSessionList() {
     var dom = CIPHER.dom;
     var state = CIPHER.state;
     if (!dom.sessionList) return;
+    closeSessionMenu();
     dom.sessionList.innerHTML = '';
 
     var q = state.filterQuery.trim().toLowerCase();
@@ -445,40 +519,36 @@
       right.className = 'flex items-center gap-1 shrink-0';
 
       var ageEl = document.createElement('span');
-      ageEl.className = 'font-mono text-[10px] text-slate-500 group-hover:hidden';
+      ageEl.className = 'font-mono text-[10px] text-slate-500 shrink-0';
       ageEl.textContent = formatAgeCompact(sess.updatedAt);
 
-      var renBtn = document.createElement('button');
-      renBtn.type = 'button';
-      renBtn.className =
-        'hidden group-hover:inline-block px-1 py-0.5 rounded text-[9px] font-mono text-slate-400 hover:text-arcCyan cursor-pointer';
-      renBtn.textContent = 'REN';
-      renBtn.addEventListener('click', function (e) {
+      var menuBtn = document.createElement('button');
+      menuBtn.type = 'button';
+      menuBtn.setAttribute('aria-label', 'Session actions');
+      menuBtn.setAttribute('aria-haspopup', 'menu');
+      menuBtn.title = 'Session options';
+      menuBtn.className =
+        'w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-arcCyan hover:bg-white/[0.08] transition cursor-pointer shrink-0 ' +
+        (active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100');
+      menuBtn.innerHTML =
+        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>';
+      menuBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        beginInlineRename(row, sess);
-      });
-
-      var delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className =
-        'hidden group-hover:inline-block px-1 py-0.5 rounded text-[9px] font-mono text-slate-400 hover:text-starkGold cursor-pointer';
-      delBtn.textContent = 'DEL';
-      delBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        deleteSessionById(sess.id);
+        openSessionMenu(menuBtn, row, sess);
       });
 
       right.appendChild(ageEl);
-      right.appendChild(renBtn);
-      right.appendChild(delBtn);
+      right.appendChild(menuBtn);
 
       row.appendChild(left);
       row.appendChild(right);
 
       row.addEventListener('click', function () {
         if (state.isGenerating) return;
+        closeSessionMenu();
         state.activeSessionId = sess.id;
         state.editingMessageId = null;
+        CIPHER.saveConfig();
         if (CIPHER.stopVoiceReadout) CIPHER.stopVoiceReadout();
         closeSidebarDrawer();
         renderSessionList();
@@ -1411,6 +1481,25 @@
 
     function handleNewChat() {
       if (state.isGenerating) return;
+      closeSessionMenu();
+      var current = findSessionById(state.activeSessionId);
+      var isCurrentEmpty =
+        current &&
+        Array.isArray(current.messages) &&
+        current.messages.length === 0 &&
+        (!current.title || current.title === 'New Session');
+
+      if (isCurrentEmpty) {
+        state.editingMessageId = null;
+        if (CIPHER.stopVoiceReadout) CIPHER.stopVoiceReadout();
+        closeSidebarDrawer();
+        renderSessionList();
+        renderChatStream();
+        syncQuotaCard();
+        if (dom.promptTextarea) dom.promptTextarea.focus();
+        return;
+      }
+
       createSession(false);
       closeSidebarDrawer();
       if (dom.promptTextarea) dom.promptTextarea.focus();
@@ -1575,6 +1664,15 @@
       });
     }
 
+    if (dom.sessionList) {
+      dom.sessionList.addEventListener('scroll', closeSessionMenu, { passive: true });
+    }
+    document.addEventListener('click', function (e) {
+      if (sessionContextMenuEl && !sessionContextMenuEl.contains(e.target)) {
+        closeSessionMenu();
+      }
+    });
+
     document.addEventListener('keydown', function (e) {
       var modalOpen =
         (dom.apiConfigModal && !dom.apiConfigModal.classList.contains('hidden')) ||
@@ -1602,7 +1700,9 @@
         if (state.screen === 'intro') enterWorkspace(false);
         handleNewChat();
       } else if (e.key === 'Escape') {
-        if (dom.apiConfigModal && !dom.apiConfigModal.classList.contains('hidden')) {
+        if (sessionContextMenuEl) {
+          closeSessionMenu();
+        } else if (dom.apiConfigModal && !dom.apiConfigModal.classList.contains('hidden')) {
           closeConfigModal();
         } else if (dom.utilityModal && !dom.utilityModal.classList.contains('hidden')) {
           closeUtilityModal();
@@ -1626,13 +1726,14 @@
       CIPHER.dom.introReactorWrap.innerHTML = CIPHER.buildMark6ReactorSvg('intro');
     }
     CIPHER.loadState();
+    applyScreenVisualState(CIPHER.state.screen);
     attachListeners();
     syncHudStatus();
     renderSessionList();
     renderChatStream();
     syncQuotaCard();
     if (CIPHER.initWaveBackdrop) CIPHER.initWaveBackdrop();
-    if (CIPHER.initIntroAudio) CIPHER.initIntroAudio();
+    if (CIPHER.state.screen === 'intro' && CIPHER.initIntroAudio) CIPHER.initIntroAudio();
     if (CIPHER.loadYouTubeBgmApi) CIPHER.loadYouTubeBgmApi();
     if (CIPHER.setupAudioGestureUnlock) CIPHER.setupAudioGestureUnlock();
 

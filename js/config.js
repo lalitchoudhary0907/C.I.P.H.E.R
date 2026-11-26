@@ -40,6 +40,8 @@
     VOICE_READOUT: 'cipher_hud_voice_readout',
     BGM_ENABLED: 'cipher_hud_bgm',
     INTRO_AUDIO_ENABLED: 'cipher_hud_intro_audio',
+    SCREEN: 'cipher_hud_screen',
+    ACTIVE_SESSION_ID: 'cipher_hud_active_session',
     SESSIONS: 'cipher_hud_sessions'
   };
 
