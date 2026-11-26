@@ -1,0 +1,75 @@
+/* Centerpiece Arc Reactor Glow & Spin */
+@keyframes cipherSpinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cipherSpinReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes cipherPulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(0, 229, 255, 0.45)); }
+  50% { filter: drop-shadow(0 0 32px rgba(0, 229, 255, 0.78)); }
+}
+
+.cipher-ring-cw {
+  transform-origin: center;
+  animation: cipherSpinSlow 22s linear infinite;
+}
+
+.cipher-ring-ccw {
+  transform-origin: center;
+  animation: cipherSpinReverse 16s linear infinite;
+}
+
+.cipher-reactor-core {
+  animation: cipherPulseGlow 3.6s ease-in-out infinite;
+}
+
+body.hud-static .cipher-ring-cw,
+body.hud-static .cipher-ring-ccw,
+body.hud-static .cipher-reactor-core {
+  animation: none !important;
+}
+
+/* Cinematic Stage Transition (500ms cubic-bezier) */
+.cipher-stage-transition {
+  transition:
+    opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cipher-intro-hidden {
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.cipher-workspace-hidden {
+  opacity: 0;
+  transform: scale(1.02);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Typing Indicator Dots */
+.cipher-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #00E5FF;
+  display: inline-block;
+  animation: cipherDotBounce 1.2s infinite ease-in-out;
+}
+
+.cipher-dot:nth-child(2) { animation-delay: 0.2s; }
+.cipher-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes cipherDotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
